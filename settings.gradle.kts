@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "PrivacyGuardian"
+rootProject.name = "TakeControl"
 include(":app")

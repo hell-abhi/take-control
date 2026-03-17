@@ -19,7 +19,7 @@ object Routes {
 }
 
 @Composable
-fun PrivacyGuardianNavHost() {
+fun TakeControlNavHost() {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = Routes.DASHBOARD) {

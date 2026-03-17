@@ -58,7 +58,7 @@ fun DashboardScreen(
                             modifier = Modifier.size(28.dp)
                         )
                         Spacer(Modifier.width(10.dp))
-                        Text("Privacy Guardian", fontWeight = FontWeight.Bold)
+                        Text("Take Control", fontWeight = FontWeight.Bold)
                     }
                 },
                 actions = {
