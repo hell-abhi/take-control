@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akeshari.takecontrol.data.model.AppPermissionInfo
 import com.akeshari.takecontrol.data.model.PermissionGroup
+import com.akeshari.takecontrol.data.model.PrivacyScore
+import com.akeshari.takecontrol.data.model.PrivacyScoreCalculator
 import com.akeshari.takecontrol.data.repository.AppRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +16,7 @@ import javax.inject.Inject
 
 data class DashboardState(
     val isLoading: Boolean = true,
-    val overallScore: Int = 0,
+    val privacyScore: PrivacyScore = PrivacyScore(0, emptyList(), com.akeshari.takecontrol.data.model.ScoreBonus(0, 0)),
     val totalApps: Int = 0,
     val totalPermissions: Int = 0,
     val topRiskyApps: List<AppPermissionInfo> = emptyList(),
@@ -46,9 +48,7 @@ class DashboardViewModel @Inject constructor(
                 val apps = repository.getInstalledApps(forceRefresh = true)
 
                 val totalPermissions = apps.sumOf { it.permissions.count { p -> p.isGranted } }
-                val overallScore = if (apps.isNotEmpty()) {
-                    100 - (apps.sumOf { it.riskScore } / apps.size)
-                } else 100
+                val privacyScore = PrivacyScoreCalculator.calculate(apps)
 
                 val groupCounts = apps
                     .flatMap { it.permissions }
@@ -58,7 +58,7 @@ class DashboardViewModel @Inject constructor(
 
                 _state.value = DashboardState(
                     isLoading = false,
-                    overallScore = overallScore.coerceIn(0, 100),
+                    privacyScore = privacyScore,
                     totalApps = apps.size,
                     totalPermissions = totalPermissions,
                     topRiskyApps = apps.take(5),

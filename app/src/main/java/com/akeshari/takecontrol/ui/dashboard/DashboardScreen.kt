@@ -1,7 +1,10 @@
 package com.akeshari.takecontrol.ui.dashboard
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,7 +16,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.*
@@ -35,6 +42,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.akeshari.takecontrol.data.model.AppPermissionInfo
 import com.akeshari.takecontrol.data.model.PermissionGroup
+import com.akeshari.takecontrol.data.model.PrivacyScore
+import com.akeshari.takecontrol.data.model.RiskLevel
+import com.akeshari.takecontrol.data.model.ScoreDeduction
 import com.akeshari.takecontrol.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -87,11 +97,12 @@ fun DashboardScreen(
             ) {
                 Spacer(Modifier.height(8.dp))
 
-                // Privacy Score Ring
+                // Privacy Score with breakdown
                 PrivacyScoreCard(
-                    score = state.overallScore,
+                    privacyScore = state.privacyScore,
                     totalApps = state.totalApps,
-                    totalPermissions = state.totalPermissions
+                    totalPermissions = state.totalPermissions,
+                    onViewMatrix = onViewAllApps
                 )
 
                 Spacer(Modifier.height(24.dp))
@@ -119,7 +130,7 @@ fun DashboardScreen(
                     TextButton(onClick = onViewAllApps) {
                         Text("View All")
                         Icon(
-                            Icons.Outlined.ArrowForward,
+                            Icons.AutoMirrored.Outlined.ArrowForward,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )
@@ -137,13 +148,21 @@ fun DashboardScreen(
     }
 }
 
+// ── Privacy Score Card with Breakdown ───────────────────────────────────────
+
 @Composable
-private fun PrivacyScoreCard(score: Int, totalApps: Int, totalPermissions: Int) {
+private fun PrivacyScoreCard(
+    privacyScore: PrivacyScore,
+    totalApps: Int,
+    totalPermissions: Int,
+    onViewMatrix: () -> Unit
+) {
     val animatedScore by animateFloatAsState(
-        targetValue = score.toFloat(),
+        targetValue = privacyScore.total.toFloat(),
         animationSpec = tween(1000),
         label = "score"
     )
+    var expanded by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -158,17 +177,17 @@ private fun PrivacyScoreCard(score: Int, totalApps: Int, totalPermissions: Int) 
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Score arc
             Box(contentAlignment = Alignment.Center) {
                 val scoreColor = when {
-                    score >= 75 -> RiskSafe
-                    score >= 50 -> RiskMedium
-                    score >= 25 -> RiskHigh
+                    privacyScore.total >= 75 -> RiskSafe
+                    privacyScore.total >= 50 -> RiskMedium
+                    privacyScore.total >= 25 -> RiskHigh
                     else -> RiskCritical
                 }
 
-                Canvas(modifier = Modifier.size(160.dp)) {
+                Canvas(modifier = Modifier.size(150.dp)) {
                     val strokeWidth = 14.dp.toPx()
-                    // Background arc
                     drawArc(
                         color = Color.Gray.copy(alpha = 0.2f),
                         startAngle = 135f,
@@ -178,7 +197,6 @@ private fun PrivacyScoreCard(score: Int, totalApps: Int, totalPermissions: Int) 
                         size = Size(size.width - strokeWidth, size.height - strokeWidth),
                         style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                     )
-                    // Score arc
                     drawArc(
                         color = scoreColor,
                         startAngle = 135f,
@@ -192,7 +210,7 @@ private fun PrivacyScoreCard(score: Int, totalApps: Int, totalPermissions: Int) 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         "${animatedScore.toInt()}",
-                        fontSize = 44.sp,
+                        fontSize = 42.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -204,7 +222,7 @@ private fun PrivacyScoreCard(score: Int, totalApps: Int, totalPermissions: Int) 
                 }
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -213,9 +231,171 @@ private fun PrivacyScoreCard(score: Int, totalApps: Int, totalPermissions: Int) 
                 StatItem(value = "$totalApps", label = "Apps Scanned")
                 StatItem(value = "$totalPermissions", label = "Permissions Granted")
             }
+
+            Spacer(Modifier.height(16.dp))
+
+            // "What's affecting your score" toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable { expanded = !expanded }
+                    .padding(vertical = 6.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    if (expanded) "Hide score breakdown" else "What's affecting your score?",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.width(4.dp))
+                Icon(
+                    if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            // Breakdown
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column(modifier = Modifier.padding(top = 12.dp)) {
+                    // Deductions
+                    privacyScore.deductions.forEach { deduction ->
+                        DeductionRow(
+                            deduction = deduction,
+                            onFix = onViewMatrix
+                        )
+                        Spacer(Modifier.height(6.dp))
+                    }
+
+                    // Bonus
+                    if (privacyScore.bonus.pointsGained > 0) {
+                        Spacer(Modifier.height(4.dp))
+                        BonusRow(
+                            deniedCount = privacyScore.bonus.deniedCount,
+                            pointsGained = privacyScore.bonus.pointsGained
+                        )
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Revoke unnecessary permissions to improve your score",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }
+
+@Composable
+private fun DeductionRow(deduction: ScoreDeduction, onFix: () -> Unit) {
+    val riskColor = when (deduction.group.defaultRisk) {
+        RiskLevel.CRITICAL -> RiskCritical
+        RiskLevel.HIGH -> RiskHigh
+        RiskLevel.MEDIUM -> RiskMedium
+        RiskLevel.LOW -> RiskLow
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(riskColor.copy(alpha = 0.06f))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Points lost
+        Text(
+            "-${deduction.pointsLost}",
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+            color = riskColor,
+            modifier = Modifier.width(36.dp)
+        )
+
+        // Icon
+        Icon(
+            deduction.group.icon,
+            contentDescription = null,
+            tint = riskColor,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(Modifier.width(8.dp))
+
+        // Description
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                deduction.group.label.replace("Your ", ""),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                "${deduction.appCount} apps have access",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        // Fix button
+        TextButton(
+            onClick = onFix,
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+            modifier = Modifier.height(32.dp)
+        ) {
+            Text("Fix", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
+private fun BonusRow(deniedCount: Int, pointsGained: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(RiskLow.copy(alpha = 0.08f))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "+$pointsGained",
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+            color = RiskLow,
+            modifier = Modifier.width(36.dp)
+        )
+        Icon(
+            Icons.Outlined.CheckCircle,
+            contentDescription = null,
+            tint = RiskLow,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(Modifier.width(8.dp))
+        Column {
+            Text(
+                "Permissions denied",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                "You denied $deniedCount permissions",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+// ── Stat / Group / App Cards ────────────────────────────────────────────────
 
 @Composable
 private fun StatItem(value: String, label: String) {
@@ -238,19 +418,17 @@ private fun StatItem(value: String, label: String) {
 private fun PermissionGroupGrid(groupCounts: Map<PermissionGroup, Int>) {
     val groups = PermissionGroup.entries.filter { groupCounts.containsKey(it) }
 
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         items(groups) { group ->
             PermissionGroupChip(
                 icon = group.icon,
                 label = group.label,
                 count = groupCounts[group] ?: 0,
                 riskColor = when (group.defaultRisk) {
-                    com.akeshari.takecontrol.data.model.RiskLevel.CRITICAL -> RiskCritical
-                    com.akeshari.takecontrol.data.model.RiskLevel.HIGH -> RiskHigh
-                    com.akeshari.takecontrol.data.model.RiskLevel.MEDIUM -> RiskMedium
-                    com.akeshari.takecontrol.data.model.RiskLevel.LOW -> RiskLow
+                    RiskLevel.CRITICAL -> RiskCritical
+                    RiskLevel.HIGH -> RiskHigh
+                    RiskLevel.MEDIUM -> RiskMedium
+                    RiskLevel.LOW -> RiskLow
                 }
             )
         }
@@ -322,7 +500,6 @@ private fun RiskyAppCard(app: AppPermissionInfo, onClick: () -> Unit) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Risk score badge
             Box(
                 modifier = Modifier
                     .size(44.dp)
@@ -355,7 +532,7 @@ private fun RiskyAppCard(app: AppPermissionInfo, onClick: () -> Unit) {
             }
 
             Icon(
-                Icons.Outlined.ArrowForward,
+                Icons.AutoMirrored.Outlined.ArrowForward,
                 contentDescription = "View details",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp)
