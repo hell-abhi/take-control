@@ -7,12 +7,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.akeshari.takecontrol.ui.appdetail.AppDetailScreen
-import com.akeshari.takecontrol.ui.applist.AppListScreen
 import com.akeshari.takecontrol.ui.dashboard.DashboardScreen
+import com.akeshari.takecontrol.ui.matrix.PermissionMatrixScreen
 
 object Routes {
     const val DASHBOARD = "dashboard"
-    const val APP_LIST = "app_list"
+    const val PERMISSION_MATRIX = "permission_matrix"
     const val APP_DETAIL = "app_detail/{packageName}"
 
     fun appDetail(packageName: String) = "app_detail/$packageName"
@@ -25,15 +25,15 @@ fun TakeControlNavHost() {
     NavHost(navController = navController, startDestination = Routes.DASHBOARD) {
         composable(Routes.DASHBOARD) {
             DashboardScreen(
-                onViewAllApps = { navController.navigate(Routes.APP_LIST) },
+                onViewAllApps = { navController.navigate(Routes.PERMISSION_MATRIX) },
                 onAppClick = { packageName ->
                     navController.navigate(Routes.appDetail(packageName))
                 }
             )
         }
 
-        composable(Routes.APP_LIST) {
-            AppListScreen(
+        composable(Routes.PERMISSION_MATRIX) {
+            PermissionMatrixScreen(
                 onAppClick = { packageName ->
                     navController.navigate(Routes.appDetail(packageName))
                 },

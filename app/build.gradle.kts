@@ -58,6 +58,9 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
+    // Accompanist (drawable painter for app icons)
+    implementation("com.google.accompanist:accompanist-drawablepainter:0.36.0")
+
     // Activity & Lifecycle
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
