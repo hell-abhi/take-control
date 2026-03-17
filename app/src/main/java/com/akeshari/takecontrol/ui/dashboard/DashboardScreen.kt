@@ -51,6 +51,7 @@ import com.akeshari.takecontrol.ui.theme.*
 @Composable
 fun DashboardScreen(
     onViewAllApps: () -> Unit,
+    onFixGroup: (String) -> Unit,
     onAppClick: (String) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
@@ -102,7 +103,8 @@ fun DashboardScreen(
                     privacyScore = state.privacyScore,
                     totalApps = state.totalApps,
                     totalPermissions = state.totalPermissions,
-                    onViewMatrix = onViewAllApps
+                    onViewMatrix = onViewAllApps,
+                    onFixGroup = onFixGroup
                 )
 
                 Spacer(Modifier.height(24.dp))
@@ -155,7 +157,8 @@ private fun PrivacyScoreCard(
     privacyScore: PrivacyScore,
     totalApps: Int,
     totalPermissions: Int,
-    onViewMatrix: () -> Unit
+    onViewMatrix: () -> Unit,
+    onFixGroup: (String) -> Unit
 ) {
     val animatedScore by animateFloatAsState(
         targetValue = privacyScore.total.toFloat(),
@@ -278,7 +281,7 @@ private fun PrivacyScoreCard(
                     privacyScore.groupBreakdowns.forEach { breakdown ->
                         GroupBreakdownRow(
                             breakdown = breakdown,
-                            onFix = onViewMatrix
+                            onFix = { onFixGroup(breakdown.group.name) }
                         )
                         Spacer(Modifier.height(6.dp))
                     }

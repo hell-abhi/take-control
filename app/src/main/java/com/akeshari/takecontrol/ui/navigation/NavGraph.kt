@@ -29,11 +29,15 @@ import com.akeshari.takecontrol.ui.settings.SettingsScreen
 
 object Routes {
     const val DASHBOARD = "dashboard"
-    const val PERMISSION_MATRIX = "permission_matrix"
+    const val PERMISSION_MATRIX = "permission_matrix?group={group}"
+    const val PERMISSION_MATRIX_BASE = "permission_matrix"
     const val SETTINGS = "settings"
     const val APP_DETAIL = "app_detail/{packageName}"
 
     fun appDetail(packageName: String) = "app_detail/$packageName"
+    fun permissionMatrix(group: String? = null): String {
+        return if (group != null) "permission_matrix?group=$group" else "permission_matrix"
+    }
 }
 
 data class BottomNavItem(
@@ -44,8 +48,8 @@ data class BottomNavItem(
 )
 
 val bottomNavItems = listOf(
-    BottomNavItem(Routes.DASHBOARD, "Dashboard", Icons.Filled.Shield, Icons.Outlined.Shield),
-    BottomNavItem(Routes.PERMISSION_MATRIX, "Matrix", Icons.Filled.GridView, Icons.Outlined.GridView),
+    BottomNavItem(Routes.PERMISSION_MATRIX_BASE, "Dashboard", Icons.Filled.Shield, Icons.Outlined.Shield),
+    BottomNavItem(Routes.PERMISSION_MATRIX_BASE, "Matrix", Icons.Filled.GridView, Icons.Outlined.GridView),
     BottomNavItem(Routes.SETTINGS, "Settings", Icons.Filled.Settings, Icons.Outlined.Settings)
 )
 
@@ -55,19 +59,26 @@ fun TakeControlNavHost() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    // Show bottom bar only on top-level tabs
-    val showBottomBar = bottomNavItems.any { it.route == currentDestination?.route }
+    val topLevelRoutes = setOf(Routes.DASHBOARD, Routes.PERMISSION_MATRIX_BASE, Routes.SETTINGS)
+    val showBottomBar = currentDestination?.route?.let { route ->
+        topLevelRoutes.any { route.startsWith(it) }
+    } ?: false
 
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar {
-                    bottomNavItems.forEach { item ->
-                        val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
+                    val navItems = listOf(
+                        Triple("Dashboard", Routes.DASHBOARD, Icons.Filled.Shield to Icons.Outlined.Shield),
+                        Triple("Matrix", Routes.PERMISSION_MATRIX_BASE, Icons.Filled.GridView to Icons.Outlined.GridView),
+                        Triple("Settings", Routes.SETTINGS, Icons.Filled.Settings to Icons.Outlined.Settings)
+                    )
+                    navItems.forEach { (label, route, icons) ->
+                        val selected = currentDestination?.route?.startsWith(route) == true
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
-                                navController.navigate(item.route) {
+                                navController.navigate(route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
                                         saveState = true
                                     }
@@ -77,13 +88,13 @@ fun TakeControlNavHost() {
                             },
                             icon = {
                                 Icon(
-                                    if (selected) item.selectedIcon else item.unselectedIcon,
-                                    contentDescription = item.label
+                                    if (selected) icons.first else icons.second,
+                                    contentDescription = label
                                 )
                             },
                             label = {
                                 Text(
-                                    item.label,
+                                    label,
                                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
                                 )
                             }
@@ -101,7 +112,7 @@ fun TakeControlNavHost() {
             composable(Routes.DASHBOARD) {
                 DashboardScreen(
                     onViewAllApps = {
-                        navController.navigate(Routes.PERMISSION_MATRIX) {
+                        navController.navigate(Routes.permissionMatrix()) {
                             popUpTo(navController.graph.findStartDestination().id) {
                                 saveState = true
                             }
@@ -109,14 +120,28 @@ fun TakeControlNavHost() {
                             restoreState = true
                         }
                     },
+                    onFixGroup = { groupName ->
+                        navController.navigate(Routes.permissionMatrix(groupName))
+                    },
                     onAppClick = { packageName ->
                         navController.navigate(Routes.appDetail(packageName))
                     }
                 )
             }
 
-            composable(Routes.PERMISSION_MATRIX) {
+            composable(
+                route = Routes.PERMISSION_MATRIX,
+                arguments = listOf(
+                    navArgument("group") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val group = backStackEntry.arguments?.getString("group")
                 PermissionMatrixScreen(
+                    highlightGroup = group,
                     onAppClick = { packageName ->
                         navController.navigate(Routes.appDetail(packageName))
                     }

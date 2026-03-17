@@ -3,7 +3,7 @@ package com.akeshari.takecontrol.ui.matrix
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akeshari.takecontrol.data.model.AppPermissionInfo
-import com.akeshari.takecontrol.data.model.RiskLevel
+import com.akeshari.takecontrol.data.model.PermissionGroup
 import com.akeshari.takecontrol.data.repository.AppRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,15 +12,25 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-enum class AppFilter(val label: String) {
-    ALL("All Apps"),
-    USER_ONLY("User Apps"),
-    HIGH_RISK("High Risk"),
-    HAS_LOCATION("Location"),
-    HAS_CAMERA("Camera"),
-    HAS_MIC("Microphone"),
-    HAS_CONTACTS("Contacts"),
-    HAS_SMS("SMS Access")
+enum class AppFilter(val label: String, val group: PermissionGroup?) {
+    ALL("All Apps", null),
+    USER_ONLY("User Apps", null),
+    HIGH_RISK("High Risk", null),
+    HAS_LOCATION("Location", PermissionGroup.LOCATION),
+    HAS_CAMERA("Camera", PermissionGroup.CAMERA),
+    HAS_MIC("Microphone", PermissionGroup.MICROPHONE),
+    HAS_CONTACTS("Contacts", PermissionGroup.CONTACTS),
+    HAS_SMS("SMS Access", PermissionGroup.SMS),
+    HAS_PHONE("Phone", PermissionGroup.PHONE),
+    HAS_STORAGE("Storage", PermissionGroup.STORAGE),
+    HAS_SENSORS("Sensors", PermissionGroup.SENSORS);
+
+    companion object {
+        fun forGroup(groupName: String): AppFilter? {
+            val group = try { PermissionGroup.valueOf(groupName) } catch (_: Exception) { null }
+            return entries.firstOrNull { it.group == group }
+        }
+    }
 }
 
 data class MatrixState(
@@ -28,6 +38,7 @@ data class MatrixState(
     val filteredApps: List<AppPermissionInfo> = emptyList(),
     val searchQuery: String = "",
     val filter: AppFilter = AppFilter.ALL,
+    val highlightedGroup: PermissionGroup? = null,
     val isLoading: Boolean = true
 )
 
@@ -42,12 +53,28 @@ class PermissionMatrixViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val apps = repository.getInstalledApps()
-            _state.value = MatrixState(
+            _state.value = _state.value.copy(
                 allApps = apps,
                 filteredApps = apps,
                 isLoading = false
             )
+            applyFilters()
         }
+    }
+
+    fun setInitialGroup(groupName: String?) {
+        if (groupName == null) return
+        val filter = AppFilter.forGroup(groupName) ?: return
+        val group = try { PermissionGroup.valueOf(groupName) } catch (_: Exception) { null }
+        _state.value = _state.value.copy(
+            filter = filter,
+            highlightedGroup = group
+        )
+        applyFilters()
+    }
+
+    fun clearHighlight() {
+        _state.value = _state.value.copy(highlightedGroup = null)
     }
 
     fun search(query: String) {
@@ -56,7 +83,10 @@ class PermissionMatrixViewModel @Inject constructor(
     }
 
     fun setFilter(filter: AppFilter) {
-        _state.value = _state.value.copy(filter = filter)
+        _state.value = _state.value.copy(
+            filter = filter,
+            highlightedGroup = filter.group
+        )
         applyFilters()
     }
 
@@ -64,48 +94,27 @@ class PermissionMatrixViewModel @Inject constructor(
         val current = _state.value
         var filtered = current.allApps
 
-        // Search
         if (current.searchQuery.isNotBlank()) {
             filtered = filtered.filter {
                 it.appName.contains(current.searchQuery, ignoreCase = true)
             }
         }
 
-        // Filter
         filtered = when (current.filter) {
             AppFilter.ALL -> filtered
             AppFilter.USER_ONLY -> filtered.filter { !it.isSystemApp }
             AppFilter.HIGH_RISK -> filtered.filter { it.riskScore >= 50 }
-            AppFilter.HAS_LOCATION -> filtered.filter { app ->
-                app.permissions.any {
-                    it.group == com.akeshari.takecontrol.data.model.PermissionGroup.LOCATION && it.isGranted
-                }
-            }
-            AppFilter.HAS_CAMERA -> filtered.filter { app ->
-                app.permissions.any {
-                    it.group == com.akeshari.takecontrol.data.model.PermissionGroup.CAMERA && it.isGranted
-                }
-            }
-            AppFilter.HAS_MIC -> filtered.filter { app ->
-                app.permissions.any {
-                    it.group == com.akeshari.takecontrol.data.model.PermissionGroup.MICROPHONE && it.isGranted
-                }
-            }
-            AppFilter.HAS_CONTACTS -> filtered.filter { app ->
-                app.permissions.any {
-                    it.group == com.akeshari.takecontrol.data.model.PermissionGroup.CONTACTS && it.isGranted
-                }
-            }
-            AppFilter.HAS_SMS -> filtered.filter { app ->
-                app.permissions.any {
-                    it.group == com.akeshari.takecontrol.data.model.PermissionGroup.SMS && it.isGranted
-                }
+            else -> {
+                val group = current.filter.group
+                if (group != null) {
+                    filtered.filter { app ->
+                        app.permissions.any { it.group == group && it.isGranted }
+                    }
+                } else filtered
             }
         }
 
-        // Sort by risk score descending
         filtered = filtered.sortedByDescending { it.riskScore }
-
         _state.value = current.copy(filteredApps = filtered)
     }
 }

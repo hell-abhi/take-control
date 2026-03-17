@@ -23,6 +23,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,11 +47,17 @@ import kotlinx.coroutines.launch
 @Composable
 fun PermissionMatrixScreen(
     onAppClick: (String) -> Unit,
+    highlightGroup: String? = null,
     viewModel: PermissionMatrixViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showLegend by remember { mutableStateOf(false) }
-    var showFilters by remember { mutableStateOf(false) }
+    var showFilters by remember { mutableStateOf(highlightGroup != null) }
+
+    // Apply initial group filter when navigated from "Fix"
+    LaunchedEffect(highlightGroup) {
+        viewModel.setInitialGroup(highlightGroup)
+    }
 
     // Bottom sheet state
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -133,6 +140,7 @@ fun PermissionMatrixScreen(
             ColumnHeaders(
                 columns = columns,
                 scrollState = scrollState,
+                highlightedGroup = state.highlightedGroup,
                 onColumnClick = { group ->
                     selectedGroup = group
                     scope.launch { sheetState.show() }
@@ -148,6 +156,7 @@ fun PermissionMatrixScreen(
                         app = app,
                         columns = columns,
                         scrollState = scrollState,
+                        highlightedGroup = state.highlightedGroup,
                         onClick = { onAppClick(app.packageName) }
                     )
                     HorizontalDivider(
@@ -531,6 +540,7 @@ private fun FilterRow(selectedFilter: AppFilter, onFilterSelected: (AppFilter) -
 private fun ColumnHeaders(
     columns: List<PermissionGroup>,
     scrollState: androidx.compose.foundation.ScrollState,
+    highlightedGroup: PermissionGroup?,
     onColumnClick: (PermissionGroup) -> Unit
 ) {
     Row(
@@ -559,10 +569,16 @@ private fun ColumnHeaders(
                 .padding(end = 16.dp)
         ) {
             columns.forEach { group ->
+                val isHighlighted = group == highlightedGroup
                 Column(
                     modifier = Modifier
                         .width(52.dp)
                         .clip(RoundedCornerShape(8.dp))
+                        .then(
+                            if (isHighlighted)
+                                Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                            else Modifier
+                        )
                         .clickable { onColumnClick(group) }
                         .padding(vertical = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -570,17 +586,18 @@ private fun ColumnHeaders(
                     Icon(
                         group.icon,
                         contentDescription = group.label,
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        modifier = Modifier.size(if (isHighlighted) 22.dp else 18.dp),
+                        tint = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         group.label.replace("Your ", ""),
                         style = MaterialTheme.typography.labelSmall,
-                        fontSize = 9.sp,
+                        fontSize = if (isHighlighted) 10.sp else 9.sp,
+                        fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Normal,
                         textAlign = TextAlign.Center,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -595,6 +612,7 @@ private fun AppPermissionRow(
     app: AppPermissionInfo,
     columns: List<PermissionGroup>,
     scrollState: androidx.compose.foundation.ScrollState,
+    highlightedGroup: PermissionGroup?,
     onClick: () -> Unit
 ) {
     Row(
@@ -649,8 +667,15 @@ private fun AppPermissionRow(
                 .padding(end = 16.dp)
         ) {
             columns.forEach { group ->
+                val isHighlighted = group == highlightedGroup
                 Box(
-                    modifier = Modifier.width(52.dp),
+                    modifier = Modifier
+                        .width(52.dp)
+                        .then(
+                            if (isHighlighted)
+                                Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
+                            else Modifier
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     PermissionDot(state = getPermissionCellState(app, group))
