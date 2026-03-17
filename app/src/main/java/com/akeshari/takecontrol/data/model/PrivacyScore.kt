@@ -20,36 +20,44 @@ data class ScoreBonus(
 
 object PrivacyScoreCalculator {
 
-    private val DEDUCTION_PER_APP = mapOf(
-        PermissionGroup.MICROPHONE to 12,
-        PermissionGroup.SMS to 12,
-        PermissionGroup.LOCATION to 10,
-        PermissionGroup.PHONE to 8,
-        PermissionGroup.CONTACTS to 6,
-        PermissionGroup.CAMERA to 5,
-        PermissionGroup.SENSORS to 4,
-        PermissionGroup.STORAGE to 3,
-        PermissionGroup.CALENDAR to 2,
+    // Points deducted for the FIRST app in a group, then diminishing returns
+    // This reflects that the first app with mic access is alarming,
+    // but the 10th one doesn't make things 10x worse
+    private val BASE_DEDUCTION = mapOf(
+        PermissionGroup.MICROPHONE to 8,
+        PermissionGroup.SMS to 8,
+        PermissionGroup.LOCATION to 7,
+        PermissionGroup.PHONE to 5,
+        PermissionGroup.CONTACTS to 4,
+        PermissionGroup.CAMERA to 4,
+        PermissionGroup.SENSORS to 3,
+        PermissionGroup.STORAGE to 2,
+        PermissionGroup.CALENDAR to 1,
         PermissionGroup.NETWORK to 0,
         PermissionGroup.OTHER to 0
     )
 
     private const val BONUS_PER_DENIAL = 1
-    private const val MAX_DEDUCTION_PER_GROUP = 30
+    private const val MAX_BONUS = 20
+    private const val MAX_DEDUCTION_PER_GROUP = 15
+    private const val MAX_TOTAL_DEDUCTION = 85
 
     fun calculate(apps: List<AppPermissionInfo>): PrivacyScore {
         val deductions = mutableListOf<ScoreDeduction>()
 
         for (group in PermissionGroup.entries) {
-            val perApp = DEDUCTION_PER_APP[group] ?: 0
-            if (perApp == 0) continue
+            val base = BASE_DEDUCTION[group] ?: 0
+            if (base == 0) continue
 
             val appsWithGranted = apps.count { app ->
                 app.permissions.any { it.group == group && it.isGranted }
             }
             if (appsWithGranted == 0) continue
 
-            val points = (appsWithGranted * perApp).coerceAtMost(MAX_DEDUCTION_PER_GROUP)
+            // Diminishing returns: first app costs full base, each additional costs less
+            // e.g. base=8: 1 app=8, 2 apps=11, 3 apps=13, 5 apps=15(cap)
+            val rawPoints = (base + (appsWithGranted - 1) * (base * 0.4)).toInt()
+            val points = rawPoints.coerceAtMost(MAX_DEDUCTION_PER_GROUP)
 
             deductions.add(
                 ScoreDeduction(
@@ -68,10 +76,10 @@ object PrivacyScoreCalculator {
         val deniedCount = apps.sumOf { app ->
             app.permissions.count { !it.isGranted }
         }
-        val bonusPoints = (deniedCount * BONUS_PER_DENIAL).coerceAtMost(15)
+        val bonusPoints = (deniedCount * BONUS_PER_DENIAL).coerceAtMost(MAX_BONUS)
         val bonus = ScoreBonus(deniedCount = deniedCount, pointsGained = bonusPoints)
 
-        val totalDeductions = deductions.sumOf { it.pointsLost }
+        val totalDeductions = deductions.sumOf { it.pointsLost }.coerceAtMost(MAX_TOTAL_DEDUCTION)
         val total = (100 - totalDeductions + bonusPoints).coerceIn(0, 100)
 
         return PrivacyScore(
