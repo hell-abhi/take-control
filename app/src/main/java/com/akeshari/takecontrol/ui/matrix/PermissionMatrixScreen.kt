@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FilterList
@@ -27,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -55,10 +55,12 @@ fun PermissionMatrixScreen(
     var showLegend by remember { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(highlightGroup != null) }
 
+    // Apply initial group filter when navigated from "Fix"
     LaunchedEffect(highlightGroup) {
         viewModel.setInitialGroup(highlightGroup)
     }
 
+    // Bottom sheet state
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     var selectedGroup by remember { mutableStateOf<PermissionGroup?>(null) }
@@ -74,6 +76,7 @@ fun PermissionMatrixScreen(
         PermissionGroup.SENSORS
     )
 
+    // Permission detail bottom sheet
     if (selectedGroup != null) {
         PermissionDetailSheet(
             group = selectedGroup!!,
@@ -90,24 +93,15 @@ fun PermissionMatrixScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        "MATRIX",
-                        style = MaterialTheme.typography.headlineSmall,
-                        letterSpacing = 2.sp
-                    )
-                },
+                title = { Text("Permission Matrix") },
                 actions = {
                     IconButton(onClick = { showLegend = !showLegend }) {
-                        Icon(Icons.Outlined.Info, "Legend", tint = Primary)
+                        Icon(Icons.Outlined.Info, "Legend")
                     }
                     IconButton(onClick = { showFilters = !showFilters }) {
-                        Icon(Icons.Outlined.FilterList, "Filters", tint = Primary)
+                        Icon(Icons.Outlined.FilterList, "Filters")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                }
             )
         }
     ) { padding ->
@@ -116,31 +110,25 @@ fun PermissionMatrixScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // Legend
             AnimatedVisibility(visible = showLegend) {
                 LegendCard()
             }
 
+            // Search
             OutlinedTextField(
                 value = state.searchQuery,
                 onValueChange = { viewModel.search(it) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = {
-                    Text(
-                        "Search apps...",
-                        color = OnSurfaceVar
-                    )
-                },
-                leadingIcon = { Icon(Icons.Outlined.Search, "Search", tint = Primary) },
+                placeholder = { Text("Search apps...") },
+                leadingIcon = { Icon(Icons.Outlined.Search, "Search") },
                 singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Primary,
-                    unfocusedBorderColor = SurfaceHigh
-                )
+                shape = RoundedCornerShape(14.dp)
             )
 
+            // Filters
             AnimatedVisibility(visible = showFilters) {
                 FilterRow(
                     selectedFilter = state.filter,
@@ -148,6 +136,7 @@ fun PermissionMatrixScreen(
                 )
             }
 
+            // Column headers (tappable)
             val scrollState = rememberScrollState()
             ColumnHeaders(
                 columns = columns,
@@ -159,8 +148,9 @@ fun PermissionMatrixScreen(
                 }
             )
 
-            HorizontalDivider(thickness = 1.dp, color = SurfaceHigh)
+            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
+            // App rows
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(state.filteredApps, key = { it.packageName }) { app ->
                     AppPermissionRow(
@@ -170,13 +160,10 @@ fun PermissionMatrixScreen(
                         highlightedGroup = state.highlightedGroup,
                         onClick = { onAppClick(app.packageName) }
                     )
-                    // Risk-colored thin divider
-                    val divColor = when {
-                        app.riskScore >= 75 -> Accent.copy(alpha = 0.3f)
-                        app.riskScore >= 50 -> RiskHigh.copy(alpha = 0.2f)
-                        else -> SurfaceHigh.copy(alpha = 0.4f)
-                    }
-                    HorizontalDivider(thickness = 0.5.dp, color = divColor)
+                    HorizontalDivider(
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                    )
                 }
             }
         }
@@ -203,17 +190,9 @@ private fun PermissionDetailSheet(
         !appsWithPermission.contains(app)
     }
 
-    val riskColor = when (group.defaultRisk) {
-        RiskLevel.CRITICAL -> Accent
-        RiskLevel.HIGH -> RiskHigh
-        RiskLevel.MEDIUM -> Warning
-        RiskLevel.LOW -> Safe
-    }
-
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = Surface
+        sheetState = sheetState
     ) {
         Column(
             modifier = Modifier
@@ -221,52 +200,46 @@ private fun PermissionDetailSheet(
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 32.dp)
         ) {
-            // Bold header with accent stripe
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(SurfaceVariant)
-            ) {
-                // Accent stripe
+            // Header
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .width(5.dp)
-                        .fillMaxHeight()
-                        .background(riskColor)
-                        .align(Alignment.CenterStart)
-                )
-                Row(
-                    modifier = Modifier
-                        .padding(start = 5.dp)
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         group.icon,
                         contentDescription = null,
-                        tint = riskColor,
-                        modifier = Modifier.size(32.dp)
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(26.dp)
                     )
-                    Spacer(Modifier.width(14.dp))
-                    Column {
-                        Text(
-                            group.label.uppercase(),
-                            style = MaterialTheme.typography.headlineSmall,
-                            letterSpacing = 1.sp
-                        )
-                        Text(
-                            group.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = OnSurfaceVar
-                        )
-                    }
+                }
+                Spacer(Modifier.width(14.dp))
+                Column {
+                    Text(
+                        group.label,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        group.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
             Spacer(Modifier.height(16.dp))
 
             // Risk badge
+            val riskColor = when (group.defaultRisk) {
+                RiskLevel.CRITICAL -> RiskCritical
+                RiskLevel.HIGH -> RiskHigh
+                RiskLevel.MEDIUM -> RiskMedium
+                RiskLevel.LOW -> RiskLow
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -283,52 +256,50 @@ private fun PermissionDetailSheet(
                 )
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    "RISK: ${group.defaultRisk.name}",
+                    "Risk Level: ${group.defaultRisk.name}",
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = riskColor,
-                    letterSpacing = 1.sp
+                    fontWeight = FontWeight.SemiBold,
+                    color = riskColor
                 )
                 Spacer(Modifier.weight(1f))
                 Text(
-                    "${appsWithPermission.size} granted",
-                    fontFamily = JetBrainsMono,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = OnSurfaceVar
+                    "${appsWithPermission.size} apps granted",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             Spacer(Modifier.height(16.dp))
 
-            // Tutorial with numbered squares
+            // How to disable tutorial
             Card(
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        "HOW TO DISABLE",
+                        "How to disable this permission",
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
+                        fontWeight = FontWeight.SemiBold
                     )
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(8.dp))
                     TutorialStep(step = "1", text = "Tap the settings icon next to an app below")
                     TutorialStep(step = "2", text = "Go to \"Permissions\" in the app info page")
                     TutorialStep(step = "3", text = "Find \"${group.label.replace("Your ", "")}\" and set to \"Don't allow\"")
-                    TutorialStep(step = "4", text = "Come back and refresh to verify")
+                    TutorialStep(step = "4", text = "Come back and refresh to verify the change")
                 }
             }
 
             Spacer(Modifier.height(16.dp))
 
+            // Apps with this permission granted
             if (appsWithPermission.isNotEmpty()) {
                 Text(
-                    "APPS WITH ACCESS (${appsWithPermission.size})",
+                    "Apps with access (${appsWithPermission.size})",
                     style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
+                    fontWeight = FontWeight.SemiBold
                 )
                 Spacer(Modifier.height(8.dp))
                 appsWithPermission.forEach { app ->
@@ -347,14 +318,14 @@ private fun PermissionDetailSheet(
                 }
             }
 
+            // Apps that denied
             if (appsDenied.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    "DENIED (${appsDenied.size})",
+                    "Apps that were denied (${appsDenied.size})",
                     style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = OnSurfaceVar,
-                    letterSpacing = 1.sp
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(8.dp))
                 appsDenied.take(5).forEach { app ->
@@ -382,27 +353,25 @@ private fun TutorialStep(step: String, text: String) {
         modifier = Modifier.padding(vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Numbered square instead of circle
         Box(
             modifier = Modifier
-                .size(24.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(Primary.copy(alpha = 0.15f)),
+                .size(22.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 step,
-                fontFamily = JetBrainsMono,
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = Primary
+                color = MaterialTheme.colorScheme.primary
             )
         }
         Spacer(Modifier.width(10.dp))
         Text(
             text,
             style = MaterialTheme.typography.bodySmall,
-            color = OnSurface
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -414,20 +383,13 @@ private fun SheetAppRow(
     onAppClick: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
-    val riskColor = when {
-        app.riskScore >= 75 -> Accent
-        app.riskScore >= 50 -> RiskHigh
-        app.riskScore >= 25 -> Warning
-        else -> Safe
-    }
-
     Card(
         shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isGranted)
-                Accent.copy(alpha = 0.06f)
+                RiskCritical.copy(alpha = 0.05f)
             else
-                Safe.copy(alpha = 0.06f)
+                RiskLow.copy(alpha = 0.05f)
         )
     ) {
         Row(
@@ -437,6 +399,7 @@ private fun SheetAppRow(
                 .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // App icon
             if (app.icon != null) {
                 Image(
                     painter = rememberDrawablePainter(drawable = app.icon),
@@ -450,7 +413,7 @@ private fun SheetAppRow(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(SurfaceHigh),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(app.appName.take(1), fontSize = 14.sp, fontWeight = FontWeight.Bold)
@@ -463,26 +426,18 @@ private fun SheetAppRow(
                 Text(
                     app.appName,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     if (isGranted) "Permission granted" else "Permission denied",
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (isGranted) Accent else Safe
+                    color = if (isGranted) RiskCritical else RiskLow
                 )
             }
 
-            // Geometric risk indicator
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(riskColor)
-            )
-            Spacer(Modifier.width(8.dp))
-
+            // Open settings button
             IconButton(
                 onClick = onOpenSettings,
                 modifier = Modifier.size(36.dp)
@@ -491,7 +446,7 @@ private fun SheetAppRow(
                     Icons.Outlined.OpenInNew,
                     contentDescription = "Open app settings",
                     modifier = Modifier.size(18.dp),
-                    tint = Primary
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -507,59 +462,54 @@ private fun LegendCard() {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "LEGEND",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 2.sp
+                "What the colors mean",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
             )
             Spacer(Modifier.height(12.dp))
-            LegendItem(color = OnSurfaceVar.copy(alpha = 0.3f), filled = false, label = "Not requested", description = "App doesn't use this")
+            LegendItem(color = Color.Gray.copy(alpha = 0.3f), label = "Not requested", description = "App doesn't use this permission")
             Spacer(Modifier.height(6.dp))
-            LegendItem(color = Safe, filled = false, label = "Denied", description = "Requested but denied")
+            LegendItem(color = RiskLow, label = "Denied", description = "Requested but you denied it")
             Spacer(Modifier.height(6.dp))
-            LegendItem(color = Warning, filled = true, label = "Granted", description = "Permission is active")
+            LegendItem(color = RiskMedium, label = "Granted", description = "Permission is active")
             Spacer(Modifier.height(6.dp))
-            LegendItem(color = Accent, filled = true, label = "Suspicious", description = "Granted & high risk")
+            LegendItem(color = RiskCritical, label = "Suspicious", description = "Granted & unusual for this type of app")
             Spacer(Modifier.height(10.dp))
             Text(
-                "Tap any column header for details",
+                "Tap any column header to see details about that permission",
                 style = MaterialTheme.typography.bodySmall,
-                color = OnSurfaceVar
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
 @Composable
-private fun LegendItem(color: Color, filled: Boolean, label: String, description: String) {
+private fun LegendItem(color: Color, label: String, description: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        // Square indicator matching the matrix
         Box(
             modifier = Modifier
-                .size(14.dp)
-                .clip(RoundedCornerShape(3.dp))
-                .then(
-                    if (filled) Modifier.background(color)
-                    else Modifier
-                        .background(color.copy(alpha = 0.15f))
-                        .border(1.5.dp, color.copy(alpha = 0.5f), RoundedCornerShape(3.dp))
-                )
+                .size(12.dp)
+                .clip(CircleShape)
+                .background(color)
         )
         Spacer(Modifier.width(10.dp))
         Text(
             label,
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Medium,
             modifier = Modifier.width(80.dp)
         )
         Text(
             description,
             style = MaterialTheme.typography.bodySmall,
-            color = OnSurfaceVar
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -579,18 +529,7 @@ private fun FilterRow(selectedFilter: AppFilter, onFilterSelected: (AppFilter) -
             FilterChip(
                 selected = selectedFilter == filter,
                 onClick = { onFilterSelected(filter) },
-                label = {
-                    Text(
-                        filter.label.uppercase(),
-                        fontSize = 11.sp,
-                        letterSpacing = 0.5.sp,
-                        fontWeight = if (selectedFilter == filter) FontWeight.Bold else FontWeight.Normal
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Primary.copy(alpha = 0.15f),
-                    selectedLabelColor = Primary
-                )
+                label = { Text(filter.label, fontSize = 12.sp) }
             )
         }
     }
@@ -608,7 +547,7 @@ private fun ColumnHeaders(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Surface)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(vertical = 8.dp)
     ) {
         Box(
@@ -618,11 +557,10 @@ private fun ColumnHeaders(
             contentAlignment = Alignment.CenterStart
         ) {
             Text(
-                "APP",
+                "App",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = OnSurfaceVar,
-                letterSpacing = 2.sp
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
@@ -633,19 +571,13 @@ private fun ColumnHeaders(
         ) {
             columns.forEach { group ->
                 val isHighlighted = group == highlightedGroup
-                val riskColor = when (group.defaultRisk) {
-                    RiskLevel.CRITICAL -> Accent
-                    RiskLevel.HIGH -> RiskHigh
-                    RiskLevel.MEDIUM -> Warning
-                    RiskLevel.LOW -> Safe
-                }
                 Column(
                     modifier = Modifier
                         .width(52.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .then(
                             if (isHighlighted)
-                                Modifier.background(Primary.copy(alpha = 0.12f))
+                                Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
                             else Modifier
                         )
                         .clickable { onColumnClick(group) }
@@ -655,8 +587,8 @@ private fun ColumnHeaders(
                     Icon(
                         group.icon,
                         contentDescription = group.label,
-                        modifier = Modifier.size(if (isHighlighted) 22.dp else 20.dp),
-                        tint = if (isHighlighted) Primary else riskColor
+                        modifier = Modifier.size(if (isHighlighted) 22.dp else 18.dp),
+                        tint = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         group.label.replace("Your ", ""),
@@ -666,7 +598,7 @@ private fun ColumnHeaders(
                         textAlign = TextAlign.Center,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = if (isHighlighted) Primary else OnSurfaceVar
+                        color = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -684,13 +616,13 @@ private fun AppPermissionRow(
     highlightedGroup: PermissionGroup?,
     onClick: () -> Unit
 ) {
-    val dimAlpha = if (app.isSystemApp) 0.45f else 1f
+    val dimAlpha = if (app.isSystemApp) 0.5f else 1f
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = 11.dp),
+            .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
@@ -713,7 +645,7 @@ private fun AppPermissionRow(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(SurfaceHigh),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -728,18 +660,16 @@ private fun AppPermissionRow(
                 Text(
                     app.appName,
                     style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = OnSurface.copy(alpha = dimAlpha)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = dimAlpha)
                 )
                 if (app.isSystemApp) {
                     Text(
-                        "SYSTEM",
+                        "System",
                         style = MaterialTheme.typography.labelSmall,
                         fontSize = 8.sp,
-                        color = OnSurfaceVar.copy(alpha = 0.5f),
-                        letterSpacing = 1.sp
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
                 }
             }
@@ -757,69 +687,49 @@ private fun AppPermissionRow(
                         .width(52.dp)
                         .then(
                             if (isHighlighted)
-                                Modifier.background(Primary.copy(alpha = 0.04f))
+                                Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
                             else Modifier
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    PermissionSquare(state = getPermissionCellState(app, group))
+                    PermissionDot(state = getPermissionCellState(app, group))
                 }
             }
         }
     }
 }
 
-// ── Square Indicators & State ───────────────────────────────────────────────
+// ── Dot & State ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun PermissionSquare(state: CellState) {
+private fun PermissionDot(state: CellState) {
     val color = when (state) {
-        CellState.NOT_REQUESTED -> OnSurfaceVar.copy(alpha = 0.2f)
-        CellState.DENIED -> Safe
-        CellState.GRANTED -> Warning
-        CellState.SUSPICIOUS -> Accent
+        CellState.NOT_REQUESTED -> Color.Gray.copy(alpha = 0.2f)
+        CellState.DENIED -> RiskLow
+        CellState.GRANTED -> RiskMedium
+        CellState.SUSPICIOUS -> RiskCritical
+    }
+    val borderColor = when (state) {
+        CellState.NOT_REQUESTED -> Color.Transparent
+        CellState.DENIED -> RiskLow.copy(alpha = 0.5f)
+        CellState.GRANTED -> RiskMedium.copy(alpha = 0.5f)
+        CellState.SUSPICIOUS -> RiskCritical.copy(alpha = 0.5f)
     }
 
-    when (state) {
-        CellState.NOT_REQUESTED -> {
-            // Empty outlined square
-            Box(
-                modifier = Modifier
-                    .size(14.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .border(1.dp, color, RoundedCornerShape(3.dp))
-            )
-        }
-        CellState.DENIED -> {
-            // Outlined square with subtle fill
-            Box(
-                modifier = Modifier
-                    .size(14.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(color.copy(alpha = 0.15f))
-                    .border(1.5.dp, color.copy(alpha = 0.6f), RoundedCornerShape(3.dp))
-            )
-        }
-        CellState.GRANTED -> {
-            // Half-filled square
-            Box(
-                modifier = Modifier
-                    .size(14.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(color.copy(alpha = 0.35f))
-                    .border(1.5.dp, color, RoundedCornerShape(3.dp))
-            )
-        }
-        CellState.SUSPICIOUS -> {
-            // Fully filled square with bold border
-            Box(
-                modifier = Modifier
-                    .size(14.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(color)
-                    .border(2.dp, color.copy(alpha = 0.7f), RoundedCornerShape(3.dp))
-            )
-        }
+    Box(
+        modifier = Modifier
+            .size(14.dp)
+            .clip(CircleShape)
+            .background(color.copy(alpha = 0.25f))
+            .border(1.5.dp, borderColor, CircleShape)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(color)
+                .align(Alignment.Center)
+        )
     }
 }
 

@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -16,7 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -45,39 +45,30 @@ fun AppDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        state.app?.appName?.uppercase() ?: "APP DETAILS",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
-                },
+                title = { Text(state.app?.appName ?: "App Details") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back", tint = Primary)
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back")
                     }
                 },
                 actions = {
+                    // Open system app settings
                     IconButton(onClick = {
                         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                             data = Uri.fromParts("package", packageName, null)
                         }
                         context.startActivity(intent)
                     }) {
-                        Icon(Icons.Outlined.Settings, "App Settings", tint = Primary)
+                        Icon(Icons.Outlined.Settings, "App Settings")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                }
             )
         }
     ) { padding ->
         val app = state.app
         if (app == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Primary)
+                CircularProgressIndicator()
             }
             return@Scaffold
         }
@@ -89,6 +80,7 @@ fun AppDetailScreen(
             contentPadding = PaddingValues(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Risk score header
             item {
                 RiskScoreHeader(
                     appName = app.appName,
@@ -99,6 +91,7 @@ fun AppDetailScreen(
                 )
             }
 
+            // Group permissions by category
             val grouped = app.permissions
                 .filter { it.isGranted }
                 .groupBy { it.group }
@@ -114,16 +107,15 @@ fun AppDetailScreen(
                 }
             }
 
+            // Denied permissions
             val denied = app.permissions.filter { !it.isGranted }
             if (denied.isNotEmpty()) {
                 item {
                     Spacer(Modifier.height(16.dp))
                     Text(
-                        "DENIED (${denied.size})",
+                        "Denied Permissions (${denied.size})",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = OnSurfaceVar,
-                        letterSpacing = 1.sp
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 items(denied) { permission ->
@@ -143,21 +135,23 @@ private fun RiskScoreHeader(
     isSystemApp: Boolean
 ) {
     val riskColor = when {
-        riskScore >= 75 -> Accent
+        riskScore >= 75 -> RiskCritical
         riskScore >= 50 -> RiskHigh
-        riskScore >= 25 -> Warning
-        else -> Safe
+        riskScore >= 25 -> RiskMedium
+        else -> RiskLow
     }
     val riskLabel = when {
-        riskScore >= 75 -> "CRITICAL"
-        riskScore >= 50 -> "HIGH RISK"
-        riskScore >= 25 -> "MEDIUM"
-        else -> "LOW RISK"
+        riskScore >= 75 -> "Critical Risk"
+        riskScore >= 50 -> "High Risk"
+        riskScore >= 25 -> "Medium Risk"
+        else -> "Low Risk"
     }
 
     Card(
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
+        colors = CardDefaults.cardColors(
+            containerColor = riskColor.copy(alpha = 0.1f)
+        )
     ) {
         Column(
             modifier = Modifier
@@ -165,68 +159,39 @@ private fun RiskScoreHeader(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Massive risk number with color fill
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(riskColor.copy(alpha = 0.12f))
-                    .padding(vertical = 16.dp),
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(riskColor.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     "$riskScore",
-                    fontFamily = ArchivoBlack,
-                    fontSize = 64.sp,
-                    lineHeight = 64.sp,
-                    letterSpacing = (-2).sp,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
                     color = riskColor
                 )
             }
-
             Spacer(Modifier.height(12.dp))
-
-            // Risk label as colored tag/badge
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(riskColor)
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    riskLabel,
-                    fontFamily = ArchivoBlack,
-                    fontSize = 14.sp,
-                    color = Color.White,
-                    letterSpacing = 2.sp
-                )
-            }
-
-            Spacer(Modifier.height(12.dp))
-
+            Text(
+                riskLabel,
+                style = MaterialTheme.typography.titleLarge,
+                color = riskColor
+            )
+            Spacer(Modifier.height(4.dp))
             Text(
                 "$grantedCount of $totalCount permissions granted",
-                fontFamily = JetBrainsMono,
-                fontSize = 13.sp,
-                color = OnSurfaceVar
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-
             if (isSystemApp) {
                 Spacer(Modifier.height(8.dp))
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(OnSurfaceVar.copy(alpha = 0.15f))
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        "SYSTEM APP",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = OnSurfaceVar,
-                        letterSpacing = 2.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Text(
+                    "System App — required by your device",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -234,34 +199,18 @@ private fun RiskScoreHeader(
 
 @Composable
 private fun PermissionGroupHeader(group: PermissionGroup, count: Int) {
-    val riskColor = when (group.defaultRisk) {
-        RiskLevel.CRITICAL -> Accent
-        RiskLevel.HIGH -> RiskHigh
-        RiskLevel.MEDIUM -> Warning
-        RiskLevel.LOW -> Safe
-    }
-
     Row(verticalAlignment = Alignment.CenterVertically) {
-        // Colored left border
-        Box(
-            modifier = Modifier
-                .size(4.dp, 24.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(riskColor)
-        )
-        Spacer(Modifier.width(10.dp))
         Icon(
             group.icon,
             contentDescription = null,
-            tint = riskColor,
+            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(22.dp)
         )
         Spacer(Modifier.width(10.dp))
         Text(
-            "${group.label.uppercase()} ($count)",
+            "${group.label} ($count)",
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.5.sp
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
@@ -269,15 +218,17 @@ private fun PermissionGroupHeader(group: PermissionGroup, count: Int) {
 @Composable
 private fun PermissionItem(permission: PermissionDetail) {
     val riskColor = when (permission.riskLevel) {
-        RiskLevel.CRITICAL -> Accent
+        RiskLevel.CRITICAL -> RiskCritical
         RiskLevel.HIGH -> RiskHigh
-        RiskLevel.MEDIUM -> Warning
-        RiskLevel.LOW -> Safe
+        RiskLevel.MEDIUM -> RiskMedium
+        RiskLevel.LOW -> RiskLow
     }
 
     Card(
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
         Row(
             modifier = Modifier
@@ -285,12 +236,11 @@ private fun PermissionItem(permission: PermissionDetail) {
                 .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Square risk indicator
             Box(
                 modifier = Modifier
-                    .size(10.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(if (permission.isGranted) riskColor else Safe)
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(if (permission.isGranted) riskColor else RiskLow)
             )
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -301,29 +251,15 @@ private fun PermissionItem(permission: PermissionDetail) {
                 )
                 Text(
                     permission.permission.substringAfterLast("."),
-                    fontFamily = JetBrainsMono,
-                    fontSize = 11.sp,
-                    color = OnSurfaceVar
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            // Status badge
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(
-                        if (permission.isGranted) riskColor.copy(alpha = 0.15f)
-                        else Safe.copy(alpha = 0.15f)
-                    )
-                    .padding(horizontal = 8.dp, vertical = 3.dp)
-            ) {
-                Text(
-                    if (permission.isGranted) "GRANTED" else "DENIED",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp,
-                    color = if (permission.isGranted) riskColor else Safe
-                )
-            }
+            Text(
+                if (permission.isGranted) "Granted" else "Denied",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (permission.isGranted) riskColor else RiskLow
+            )
         }
     }
 }

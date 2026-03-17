@@ -14,7 +14,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -26,7 +25,6 @@ import com.akeshari.takecontrol.ui.appdetail.AppDetailScreen
 import com.akeshari.takecontrol.ui.dashboard.DashboardScreen
 import com.akeshari.takecontrol.ui.matrix.PermissionMatrixScreen
 import com.akeshari.takecontrol.ui.settings.SettingsScreen
-import com.akeshari.takecontrol.ui.theme.*
 
 object Routes {
     const val DASHBOARD = "dashboard"
@@ -69,10 +67,7 @@ fun TakeControlNavHost() {
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                NavigationBar(
-                    containerColor = Surface,
-                    contentColor = OnBackground
-                ) {
+                NavigationBar {
                     bottomNavItems.forEach { item ->
                         val selected = when (item.route) {
                             Routes.DASHBOARD -> currentRoute == Routes.DASHBOARD
@@ -94,22 +89,15 @@ fun TakeControlNavHost() {
                             icon = {
                                 Icon(
                                     if (selected) item.selectedIcon else item.unselectedIcon,
-                                    contentDescription = item.label,
-                                    tint = if (selected) Primary else OnSurfaceVar
+                                    contentDescription = item.label
                                 )
                             },
                             label = {
                                 Text(
-                                    item.label.uppercase(),
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                                    fontSize = 10.sp,
-                                    letterSpacing = 1.sp,
-                                    color = if (selected) Primary else OnSurfaceVar
+                                    item.label,
+                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
                                 )
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                indicatorColor = Primary.copy(alpha = 0.12f)
-                            )
+                            }
                         )
                     }
                 }

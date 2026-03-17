@@ -2,41 +2,33 @@ package com.akeshari.takecontrol.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// ── Bold & Graphic Palette ──────────────────────────────────────────────────
+// Primary - Deep teal (trust, security)
+val Primary = Color(0xFF0D7377)
+val PrimaryVariant = Color(0xFF14BDAC)
+val OnPrimary = Color.White
 
-// Base
-val Background = Color(0xFF0A0E1A)       // Deep navy
-val Surface = Color(0xFF111827)           // Dark panel
-val SurfaceVariant = Color(0xFF1E2940)    // Card
-val SurfaceHigh = Color(0xFF283352)       // Elevated card
-
-// Primary
-val Primary = Color(0xFF00F0FF)           // Electric cyan
-val PrimaryDim = Color(0xFF0A8F99)        // Muted cyan
-val OnPrimary = Color(0xFF0A0E1A)
-
-// Accent / Risk
-val Accent = Color(0xFFFF3B5C)            // Signal red — danger/critical
-val Warning = Color(0xFFFFB800)           // Amber
-val Safe = Color(0xFF00E676)              // Acid green
+// Background
+val Background = Color(0xFF0B0E11)
+val Surface = Color(0xFF141920)
+val SurfaceVariant = Color(0xFF1C2330)
 
 // Text
-val OnBackground = Color(0xFFF0F4FF)      // Bright white-blue
-val OnSurface = Color(0xFFF0F4FF)
-val OnSurfaceVar = Color(0xFF7B8BA8)      // Muted label
+val OnBackground = Color(0xFFE8ECF0)
+val OnSurface = Color(0xFFE8ECF0)
+val OnSurfaceVariant = Color(0xFF8B95A5)
 
-// Risk colors (mapped to new palette)
-val RiskCritical = Accent
+// Risk colors
+val RiskCritical = Color(0xFFFF4757)
 val RiskHigh = Color(0xFFFF6B35)
-val RiskMedium = Warning
-val RiskLow = Safe
-val RiskSafe = Primary
+val RiskMedium = Color(0xFFFFBE0B)
+val RiskLow = Color(0xFF06D6A0)
+val RiskSafe = Color(0xFF4ECDC4)
 
-// Light theme (kept but also bold)
-val PrimaryLight = Color(0xFF0088AA)
-val BackgroundLight = Color(0xFFF0F4FF)
+// Light theme
+val PrimaryLight = Color(0xFF0D7377)
+val BackgroundLight = Color(0xFFF5F7FA)
 val SurfaceLight = Color.White
-val SurfaceVariantLight = Color(0xFFE4EAF5)
-val OnBackgroundLight = Color(0xFF0A0E1A)
-val OnSurfaceLight = Color(0xFF0A0E1A)
-val OnSurfaceVariantLight = Color(0xFF5A6980)
+val SurfaceVariantLight = Color(0xFFEEF1F5)
+val OnBackgroundLight = Color(0xFF1A1D21)
+val OnSurfaceLight = Color(0xFF1A1D21)
+val OnSurfaceVariantLight = Color(0xFF6B7280)
