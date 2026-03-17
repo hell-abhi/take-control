@@ -86,7 +86,8 @@ fun AppDetailScreen(
                     appName = app.appName,
                     riskScore = app.riskScore,
                     grantedCount = app.permissions.count { it.isGranted },
-                    totalCount = app.permissions.size
+                    totalCount = app.permissions.size,
+                    isSystemApp = app.isSystemApp
                 )
             }
 
@@ -130,7 +131,8 @@ private fun RiskScoreHeader(
     appName: String,
     riskScore: Int,
     grantedCount: Int,
-    totalCount: Int
+    totalCount: Int,
+    isSystemApp: Boolean
 ) {
     val riskColor = when {
         riskScore >= 75 -> RiskCritical
@@ -183,6 +185,14 @@ private fun RiskScoreHeader(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (isSystemApp) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "System App — required by your device",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

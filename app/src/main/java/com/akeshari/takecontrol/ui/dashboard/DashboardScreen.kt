@@ -101,7 +101,8 @@ fun DashboardScreen(
                 // Privacy Score with breakdown
                 PrivacyScoreCard(
                     privacyScore = state.privacyScore,
-                    totalApps = state.totalApps,
+                    userAppCount = state.userAppCount,
+                    systemAppCount = state.systemAppCount,
                     totalPermissions = state.totalPermissions,
                     onViewMatrix = onViewAllApps,
                     onFixGroup = onFixGroup
@@ -155,7 +156,8 @@ fun DashboardScreen(
 @Composable
 private fun PrivacyScoreCard(
     privacyScore: PrivacyScore,
-    totalApps: Int,
+    userAppCount: Int,
+    systemAppCount: Int,
     totalPermissions: Int,
     onViewMatrix: () -> Unit,
     onFixGroup: (String) -> Unit
@@ -231,8 +233,9 @@ private fun PrivacyScoreCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                StatItem(value = "$totalApps", label = "Apps Scanned")
+                StatItem(value = "$userAppCount", label = "Installed Apps")
                 StatItem(value = "$totalPermissions", label = "Permissions Granted")
+                StatItem(value = "$systemAppCount", label = "System Apps")
             }
 
             Spacer(Modifier.height(16.dp))

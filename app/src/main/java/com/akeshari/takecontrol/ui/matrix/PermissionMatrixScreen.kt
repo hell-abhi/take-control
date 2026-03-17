@@ -26,6 +26,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -615,6 +616,8 @@ private fun AppPermissionRow(
     highlightedGroup: PermissionGroup?,
     onClick: () -> Unit
 ) {
+    val dimAlpha = if (app.isSystemApp) 0.5f else 1f
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -635,6 +638,7 @@ private fun AppPermissionRow(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(RoundedCornerShape(6.dp))
+                        .then(if (app.isSystemApp) Modifier.alpha(dimAlpha) else Modifier)
                 )
             } else {
                 Box(
@@ -652,13 +656,23 @@ private fun AppPermissionRow(
                 }
             }
             Spacer(Modifier.width(8.dp))
-            Text(
-                app.appName,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    app.appName,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = dimAlpha)
+                )
+                if (app.isSystemApp) {
+                    Text(
+                        "System",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 8.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
+            }
         }
 
         Row(

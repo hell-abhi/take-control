@@ -17,7 +17,8 @@ import javax.inject.Inject
 data class DashboardState(
     val isLoading: Boolean = true,
     val privacyScore: PrivacyScore = PrivacyScore(0, 0, 0, 0, emptyList()),
-    val totalApps: Int = 0,
+    val userAppCount: Int = 0,
+    val systemAppCount: Int = 0,
     val totalPermissions: Int = 0,
     val topRiskyApps: List<AppPermissionInfo> = emptyList(),
     val permissionGroupCounts: Map<PermissionGroup, Int> = emptyMap(),
@@ -46,11 +47,15 @@ class DashboardViewModel @Inject constructor(
             _state.value = _state.value.copy(isLoading = true, error = null)
             try {
                 val apps = repository.getInstalledApps(forceRefresh = true)
+                val userApps = apps.filter { !it.isSystemApp }
+                val systemApps = apps.filter { it.isSystemApp }
 
-                val totalPermissions = apps.sumOf { it.permissions.count { p -> p.isGranted } }
-                val privacyScore = PrivacyScoreCalculator.calculate(apps)
+                // Score based on user apps only
+                val totalPermissions = userApps.sumOf { it.permissions.count { p -> p.isGranted } }
+                val privacyScore = PrivacyScoreCalculator.calculate(userApps)
 
-                val groupCounts = apps
+                // Permission group counts from user apps only
+                val groupCounts = userApps
                     .flatMap { it.permissions }
                     .filter { it.isGranted }
                     .groupBy { it.group }
@@ -59,9 +64,10 @@ class DashboardViewModel @Inject constructor(
                 _state.value = DashboardState(
                     isLoading = false,
                     privacyScore = privacyScore,
-                    totalApps = apps.size,
+                    userAppCount = userApps.size,
+                    systemAppCount = systemApps.size,
                     totalPermissions = totalPermissions,
-                    topRiskyApps = apps.take(5),
+                    topRiskyApps = userApps.take(5),
                     permissionGroupCounts = groupCounts
                 )
             } catch (e: Exception) {

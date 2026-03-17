@@ -13,8 +13,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 enum class AppFilter(val label: String, val group: PermissionGroup?) {
+    USER_ONLY("Installed Apps", null),
+    SYSTEM_ONLY("System Apps", null),
     ALL("All Apps", null),
-    USER_ONLY("User Apps", null),
     HIGH_RISK("High Risk", null),
     HAS_LOCATION("Location", PermissionGroup.LOCATION),
     HAS_CAMERA("Camera", PermissionGroup.CAMERA),
@@ -37,7 +38,7 @@ data class MatrixState(
     val allApps: List<AppPermissionInfo> = emptyList(),
     val filteredApps: List<AppPermissionInfo> = emptyList(),
     val searchQuery: String = "",
-    val filter: AppFilter = AppFilter.ALL,
+    val filter: AppFilter = AppFilter.USER_ONLY,
     val highlightedGroup: PermissionGroup? = null,
     val isLoading: Boolean = true
 )
@@ -55,7 +56,6 @@ class PermissionMatrixViewModel @Inject constructor(
             val apps = repository.getInstalledApps()
             _state.value = _state.value.copy(
                 allApps = apps,
-                filteredApps = apps,
                 isLoading = false
             )
             applyFilters()
@@ -101,9 +101,10 @@ class PermissionMatrixViewModel @Inject constructor(
         }
 
         filtered = when (current.filter) {
-            AppFilter.ALL -> filtered
             AppFilter.USER_ONLY -> filtered.filter { !it.isSystemApp }
-            AppFilter.HIGH_RISK -> filtered.filter { it.riskScore >= 50 }
+            AppFilter.SYSTEM_ONLY -> filtered.filter { it.isSystemApp }
+            AppFilter.ALL -> filtered
+            AppFilter.HIGH_RISK -> filtered.filter { !it.isSystemApp && it.riskScore >= 50 }
             else -> {
                 val group = current.filter.group
                 if (group != null) {
