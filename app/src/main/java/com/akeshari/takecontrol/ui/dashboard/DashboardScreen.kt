@@ -42,9 +42,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.akeshari.takecontrol.data.model.AppPermissionInfo
 import com.akeshari.takecontrol.data.model.PermissionGroup
+import com.akeshari.takecontrol.data.model.GroupBreakdown
 import com.akeshari.takecontrol.data.model.PrivacyScore
 import com.akeshari.takecontrol.data.model.RiskLevel
-import com.akeshari.takecontrol.data.model.ScoreDeduction
 import com.akeshari.takecontrol.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -266,27 +266,34 @@ private fun PrivacyScoreCard(
                 exit = shrinkVertically()
             ) {
                 Column(modifier = Modifier.padding(top = 12.dp)) {
-                    // Deductions
-                    privacyScore.deductions.forEach { deduction ->
-                        DeductionRow(
-                            deduction = deduction,
+                    // Explanation
+                    Text(
+                        "Score = % of sensitive risk you've avoided",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+
+                    // Group breakdowns (things hurting your score)
+                    privacyScore.groupBreakdowns.forEach { breakdown ->
+                        GroupBreakdownRow(
+                            breakdown = breakdown,
                             onFix = onViewMatrix
                         )
                         Spacer(Modifier.height(6.dp))
                     }
 
-                    // Bonus
-                    if (privacyScore.bonus.pointsGained > 0) {
-                        Spacer(Modifier.height(4.dp))
-                        BonusRow(
-                            deniedCount = privacyScore.bonus.deniedCount,
-                            pointsGained = privacyScore.bonus.pointsGained
+                    if (privacyScore.groupBreakdowns.isEmpty()) {
+                        Text(
+                            "No sensitive permissions granted — you're fully in control!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = RiskSafe
                         )
                     }
 
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        "Revoke unnecessary permissions to improve your score",
+                        "Each \"Fix\" shows which apps to revoke. Your score updates instantly.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -297,8 +304,8 @@ private fun PrivacyScoreCard(
 }
 
 @Composable
-private fun DeductionRow(deduction: ScoreDeduction, onFix: () -> Unit) {
-    val riskColor = when (deduction.group.defaultRisk) {
+private fun GroupBreakdownRow(breakdown: GroupBreakdown, onFix: () -> Unit) {
+    val riskColor = when (breakdown.group.defaultRisk) {
         RiskLevel.CRITICAL -> RiskCritical
         RiskLevel.HIGH -> RiskHigh
         RiskLevel.MEDIUM -> RiskMedium
@@ -313,35 +320,37 @@ private fun DeductionRow(deduction: ScoreDeduction, onFix: () -> Unit) {
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Points lost
-        Text(
-            "-${deduction.pointsLost}",
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-            color = riskColor,
-            modifier = Modifier.width(36.dp)
-        )
-
         // Icon
         Icon(
-            deduction.group.icon,
+            breakdown.group.icon,
             contentDescription = null,
             tint = riskColor,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(20.dp)
         )
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(10.dp))
 
         // Description
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                deduction.group.label.replace("Your ", ""),
+                breakdown.group.label.replace("Your ", ""),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium
             )
             Text(
-                "${deduction.appCount} apps have access",
+                "${breakdown.appsGranted} apps have access",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        // Recoverable points
+        if (breakdown.pointsRecoverable > 0) {
+            Text(
+                "+${breakdown.pointsRecoverable}",
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                color = RiskSafe,
+                modifier = Modifier.padding(end = 4.dp)
             )
         }
 
@@ -352,45 +361,6 @@ private fun DeductionRow(deduction: ScoreDeduction, onFix: () -> Unit) {
             modifier = Modifier.height(32.dp)
         ) {
             Text("Fix", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-        }
-    }
-}
-
-@Composable
-private fun BonusRow(deniedCount: Int, pointsGained: Int) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(RiskLow.copy(alpha = 0.08f))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            "+$pointsGained",
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-            color = RiskLow,
-            modifier = Modifier.width(36.dp)
-        )
-        Icon(
-            Icons.Outlined.CheckCircle,
-            contentDescription = null,
-            tint = RiskLow,
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(Modifier.width(8.dp))
-        Column {
-            Text(
-                "Permissions denied",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                "You denied $deniedCount permissions",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }

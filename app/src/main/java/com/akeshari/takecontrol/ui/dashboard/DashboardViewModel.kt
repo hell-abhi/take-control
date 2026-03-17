@@ -16,7 +16,7 @@ import javax.inject.Inject
 
 data class DashboardState(
     val isLoading: Boolean = true,
-    val privacyScore: PrivacyScore = PrivacyScore(0, emptyList(), com.akeshari.takecontrol.data.model.ScoreBonus(0, 0)),
+    val privacyScore: PrivacyScore = PrivacyScore(0, 0, 0, 0, emptyList()),
     val totalApps: Int = 0,
     val totalPermissions: Int = 0,
     val topRiskyApps: List<AppPermissionInfo> = emptyList(),

@@ -2,90 +2,112 @@ package com.akeshari.takecontrol.data.model
 
 data class PrivacyScore(
     val total: Int,
-    val deductions: List<ScoreDeduction>,
-    val bonus: ScoreBonus
+    val riskGranted: Int,
+    val riskDenied: Int,
+    val riskTotal: Int,
+    val groupBreakdowns: List<GroupBreakdown>
 )
 
-data class ScoreDeduction(
+data class GroupBreakdown(
     val group: PermissionGroup,
-    val appCount: Int,
-    val pointsLost: Int,
-    val description: String
-)
-
-data class ScoreBonus(
-    val deniedCount: Int,
-    val pointsGained: Int
+    val appsGranted: Int,
+    val appsDenied: Int,
+    val riskGranted: Int,
+    val riskDenied: Int,
+    val pointsRecoverable: Int // how many score points user gains by revoking all in this group
 )
 
 object PrivacyScoreCalculator {
 
-    // Points deducted for the FIRST app in a group, then diminishing returns
-    // This reflects that the first app with mic access is alarming,
-    // but the 10th one doesn't make things 10x worse
-    private val BASE_DEDUCTION = mapOf(
-        PermissionGroup.MICROPHONE to 8,
-        PermissionGroup.SMS to 8,
-        PermissionGroup.LOCATION to 7,
-        PermissionGroup.PHONE to 5,
-        PermissionGroup.CONTACTS to 4,
-        PermissionGroup.CAMERA to 4,
-        PermissionGroup.SENSORS to 3,
-        PermissionGroup.STORAGE to 2,
-        PermissionGroup.CALENDAR to 1,
+    // Risk weight per permission instance, by group
+    // These reflect real-world privacy severity
+    private val RISK_WEIGHT = mapOf(
+        PermissionGroup.MICROPHONE to 10,
+        PermissionGroup.SMS to 10,
+        PermissionGroup.LOCATION to 8,
+        PermissionGroup.PHONE to 7,
+        PermissionGroup.CONTACTS to 6,
+        PermissionGroup.CAMERA to 6,
+        PermissionGroup.SENSORS to 4,
+        PermissionGroup.STORAGE to 3,
+        PermissionGroup.CALENDAR to 2,
         PermissionGroup.NETWORK to 0,
         PermissionGroup.OTHER to 0
     )
 
-    private const val BONUS_PER_DENIAL = 1
-    private const val MAX_BONUS = 20
-    private const val MAX_DEDUCTION_PER_GROUP = 15
-    private const val MAX_TOTAL_DEDUCTION = 85
-
     fun calculate(apps: List<AppPermissionInfo>): PrivacyScore {
-        val deductions = mutableListOf<ScoreDeduction>()
+        var totalRiskGranted = 0
+        var totalRiskDenied = 0
+        val groupBreakdowns = mutableListOf<GroupBreakdown>()
 
         for (group in PermissionGroup.entries) {
-            val base = BASE_DEDUCTION[group] ?: 0
-            if (base == 0) continue
+            val weight = RISK_WEIGHT[group] ?: 0
+            if (weight == 0) continue
 
-            val appsWithGranted = apps.count { app ->
-                app.permissions.any { it.group == group && it.isGranted }
+            var grantedCount = 0
+            var deniedCount = 0
+
+            for (app in apps) {
+                val permsInGroup = app.permissions.filter { it.group == group }
+                if (permsInGroup.isEmpty()) continue
+
+                // Count this app once per group (not per individual permission)
+                val hasGranted = permsInGroup.any { it.isGranted }
+                val hasDenied = permsInGroup.any { !it.isGranted }
+
+                if (hasGranted) grantedCount++
+                if (hasDenied && !hasGranted) deniedCount++
             }
-            if (appsWithGranted == 0) continue
 
-            // Diminishing returns: first app costs full base, each additional costs less
-            // e.g. base=8: 1 app=8, 2 apps=11, 3 apps=13, 5 apps=15(cap)
-            val rawPoints = (base + (appsWithGranted - 1) * (base * 0.4)).toInt()
-            val points = rawPoints.coerceAtMost(MAX_DEDUCTION_PER_GROUP)
+            val groupRiskGranted = grantedCount * weight
+            val groupRiskDenied = deniedCount * weight
+            totalRiskGranted += groupRiskGranted
+            totalRiskDenied += groupRiskDenied
 
-            deductions.add(
-                ScoreDeduction(
-                    group = group,
-                    appCount = appsWithGranted,
-                    pointsLost = points,
-                    description = "${appsWithGranted} apps ${group.description.lowercase()}"
+            if (grantedCount > 0 || deniedCount > 0) {
+                val groupTotal = groupRiskGranted + groupRiskDenied
+                // How many score points would the user recover by revoking all granted in this group?
+                // This is calculated after we know the total, so we add it below
+                groupBreakdowns.add(
+                    GroupBreakdown(
+                        group = group,
+                        appsGranted = grantedCount,
+                        appsDenied = deniedCount,
+                        riskGranted = groupRiskGranted,
+                        riskDenied = groupRiskDenied,
+                        pointsRecoverable = 0 // placeholder, calculated below
+                    )
                 )
-            )
+            }
         }
 
-        // Sort by points lost descending
-        deductions.sortByDescending { it.pointsLost }
-
-        // Bonus for denied permissions
-        val deniedCount = apps.sumOf { app ->
-            app.permissions.count { !it.isGranted }
+        val totalRisk = totalRiskGranted + totalRiskDenied
+        val score = if (totalRisk > 0) {
+            (totalRiskDenied * 100) / totalRisk
+        } else {
+            100 // no sensitive permissions at all = perfect
         }
-        val bonusPoints = (deniedCount * BONUS_PER_DENIAL).coerceAtMost(MAX_BONUS)
-        val bonus = ScoreBonus(deniedCount = deniedCount, pointsGained = bonusPoints)
 
-        val totalDeductions = deductions.sumOf { it.pointsLost }.coerceAtMost(MAX_TOTAL_DEDUCTION)
-        val total = (100 - totalDeductions + bonusPoints).coerceIn(0, 100)
+        // Now calculate recoverable points per group
+        val finalBreakdowns = groupBreakdowns.map { breakdown ->
+            if (totalRisk > 0) {
+                // If user revoked all granted in this group, how much would the score increase?
+                val newGranted = totalRiskGranted - breakdown.riskGranted
+                val newDenied = totalRiskDenied + breakdown.riskGranted
+                val newScore = (newDenied * 100) / totalRisk
+                breakdown.copy(pointsRecoverable = newScore - score)
+            } else {
+                breakdown
+            }
+        }.filter { it.appsGranted > 0 } // only show groups where there's something to fix
+            .sortedByDescending { it.pointsRecoverable }
 
         return PrivacyScore(
-            total = total,
-            deductions = deductions,
-            bonus = bonus
+            total = score.coerceIn(0, 100),
+            riskGranted = totalRiskGranted,
+            riskDenied = totalRiskDenied,
+            riskTotal = totalRisk,
+            groupBreakdowns = finalBreakdowns
         )
     }
 }
