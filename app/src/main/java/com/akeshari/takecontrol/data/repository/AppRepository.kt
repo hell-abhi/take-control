@@ -13,7 +13,7 @@ class AppRepository @Inject constructor(
 
     suspend fun getInstalledApps(forceRefresh: Boolean = false): List<AppPermissionInfo> {
         if (forceRefresh || cachedApps == null) {
-            cachedApps = scanner.scanAllApps()
+            cachedApps = scanner.scanAllApps(includeSystemApps = true)
         }
         return cachedApps!!
     }
