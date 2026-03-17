@@ -14,7 +14,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -48,7 +47,7 @@ data class BottomNavItem(
 )
 
 val bottomNavItems = listOf(
-    BottomNavItem(Routes.PERMISSION_MATRIX_BASE, "Dashboard", Icons.Filled.Shield, Icons.Outlined.Shield),
+    BottomNavItem(Routes.DASHBOARD, "Dashboard", Icons.Filled.Shield, Icons.Outlined.Shield),
     BottomNavItem(Routes.PERMISSION_MATRIX_BASE, "Matrix", Icons.Filled.GridView, Icons.Outlined.GridView),
     BottomNavItem(Routes.SETTINGS, "Settings", Icons.Filled.Settings, Icons.Outlined.Settings)
 )
@@ -57,28 +56,29 @@ val bottomNavItems = listOf(
 fun TakeControlNavHost() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
+    val currentRoute = navBackStackEntry?.destination?.route
 
-    val topLevelRoutes = setOf(Routes.DASHBOARD, Routes.PERMISSION_MATRIX_BASE, Routes.SETTINGS)
-    val showBottomBar = currentDestination?.route?.let { route ->
-        topLevelRoutes.any { route.startsWith(it) }
-    } ?: false
+    val showBottomBar = currentRoute != null && (
+        currentRoute == Routes.DASHBOARD ||
+        currentRoute.startsWith(Routes.PERMISSION_MATRIX_BASE) ||
+        currentRoute == Routes.SETTINGS
+    )
 
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar {
-                    val navItems = listOf(
-                        Triple("Dashboard", Routes.DASHBOARD, Icons.Filled.Shield to Icons.Outlined.Shield),
-                        Triple("Matrix", Routes.PERMISSION_MATRIX_BASE, Icons.Filled.GridView to Icons.Outlined.GridView),
-                        Triple("Settings", Routes.SETTINGS, Icons.Filled.Settings to Icons.Outlined.Settings)
-                    )
-                    navItems.forEach { (label, route, icons) ->
-                        val selected = currentDestination?.route?.startsWith(route) == true
+                    bottomNavItems.forEach { item ->
+                        val selected = when (item.route) {
+                            Routes.DASHBOARD -> currentRoute == Routes.DASHBOARD
+                            Routes.PERMISSION_MATRIX_BASE -> currentRoute?.startsWith(Routes.PERMISSION_MATRIX_BASE) == true
+                            Routes.SETTINGS -> currentRoute == Routes.SETTINGS
+                            else -> false
+                        }
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
-                                navController.navigate(route) {
+                                navController.navigate(item.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
                                         saveState = true
                                     }
@@ -88,13 +88,13 @@ fun TakeControlNavHost() {
                             },
                             icon = {
                                 Icon(
-                                    if (selected) icons.first else icons.second,
-                                    contentDescription = label
+                                    if (selected) item.selectedIcon else item.unselectedIcon,
+                                    contentDescription = item.label
                                 )
                             },
                             label = {
                                 Text(
-                                    label,
+                                    item.label,
                                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
                                 )
                             }
