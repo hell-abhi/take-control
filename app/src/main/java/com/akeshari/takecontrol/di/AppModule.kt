@@ -1,4 +1,4 @@
-package com.akeshari.privacyguardian.di
+package com.akeshari.takecontrol.di
 
 import dagger.Module
 import dagger.hilt.InstallIn

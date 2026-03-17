@@ -1,4 +1,4 @@
-package com.akeshari.privacyguardian
+package com.akeshari.takecontrol
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp

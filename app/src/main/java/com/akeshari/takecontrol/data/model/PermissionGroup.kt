@@ -1,4 +1,4 @@
-package com.akeshari.privacyguardian.data.model
+package com.akeshari.takecontrol.data.model
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*

@@ -1,7 +1,7 @@
-package com.akeshari.privacyguardian.data.repository
+package com.akeshari.takecontrol.data.repository
 
-import com.akeshari.privacyguardian.data.model.AppPermissionInfo
-import com.akeshari.privacyguardian.data.scanner.PermissionScanner
+import com.akeshari.takecontrol.data.model.AppPermissionInfo
+import com.akeshari.takecontrol.data.scanner.PermissionScanner
 import javax.inject.Inject
 import javax.inject.Singleton
 

@@ -1,4 +1,4 @@
-package com.akeshari.privacyguardian.ui.applist
+package com.akeshari.takecontrol.ui.applist
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,8 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.akeshari.privacyguardian.data.model.AppPermissionInfo
-import com.akeshari.privacyguardian.ui.theme.*
+import com.akeshari.takecontrol.data.model.AppPermissionInfo
+import com.akeshari.takecontrol.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

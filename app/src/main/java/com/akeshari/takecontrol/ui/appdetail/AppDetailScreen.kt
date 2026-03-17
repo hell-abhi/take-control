@@ -1,4 +1,4 @@
-package com.akeshari.privacyguardian.ui.appdetail
+package com.akeshari.takecontrol.ui.appdetail
 
 import android.content.Intent
 import android.net.Uri
@@ -23,10 +23,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.akeshari.privacyguardian.data.model.PermissionDetail
-import com.akeshari.privacyguardian.data.model.PermissionGroup
-import com.akeshari.privacyguardian.data.model.RiskLevel
-import com.akeshari.privacyguardian.ui.theme.*
+import com.akeshari.takecontrol.data.model.PermissionDetail
+import com.akeshari.takecontrol.data.model.PermissionGroup
+import com.akeshari.takecontrol.data.model.RiskLevel
+import com.akeshari.takecontrol.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

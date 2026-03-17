@@ -1,4 +1,4 @@
-package com.akeshari.privacyguardian.ui.theme
+package com.akeshari.takecontrol.ui.theme
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme

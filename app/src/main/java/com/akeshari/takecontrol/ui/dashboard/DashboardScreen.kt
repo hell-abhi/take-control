@@ -1,4 +1,4 @@
-package com.akeshari.privacyguardian.ui.dashboard
+package com.akeshari.takecontrol.ui.dashboard
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -33,9 +33,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.akeshari.privacyguardian.data.model.AppPermissionInfo
-import com.akeshari.privacyguardian.data.model.PermissionGroup
-import com.akeshari.privacyguardian.ui.theme.*
+import com.akeshari.takecontrol.data.model.AppPermissionInfo
+import com.akeshari.takecontrol.data.model.PermissionGroup
+import com.akeshari.takecontrol.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -247,10 +247,10 @@ private fun PermissionGroupGrid(groupCounts: Map<PermissionGroup, Int>) {
                 label = group.label,
                 count = groupCounts[group] ?: 0,
                 riskColor = when (group.defaultRisk) {
-                    com.akeshari.privacyguardian.data.model.RiskLevel.CRITICAL -> RiskCritical
-                    com.akeshari.privacyguardian.data.model.RiskLevel.HIGH -> RiskHigh
-                    com.akeshari.privacyguardian.data.model.RiskLevel.MEDIUM -> RiskMedium
-                    com.akeshari.privacyguardian.data.model.RiskLevel.LOW -> RiskLow
+                    com.akeshari.takecontrol.data.model.RiskLevel.CRITICAL -> RiskCritical
+                    com.akeshari.takecontrol.data.model.RiskLevel.HIGH -> RiskHigh
+                    com.akeshari.takecontrol.data.model.RiskLevel.MEDIUM -> RiskMedium
+                    com.akeshari.takecontrol.data.model.RiskLevel.LOW -> RiskLow
                 }
             )
         }

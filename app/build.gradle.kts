@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.akeshari.privacyguardian"
+    namespace = "com.akeshari.takecontrol"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.akeshari.privacyguardian"
+        applicationId = "com.akeshari.takecontrol"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

@@ -1,9 +1,9 @@
-package com.akeshari.privacyguardian.util
+package com.akeshari.takecontrol.util
 
 import android.Manifest
-import com.akeshari.privacyguardian.data.model.PermissionDetail
-import com.akeshari.privacyguardian.data.model.PermissionGroup
-import com.akeshari.privacyguardian.data.model.RiskLevel
+import com.akeshari.takecontrol.data.model.PermissionDetail
+import com.akeshari.takecontrol.data.model.PermissionGroup
+import com.akeshari.takecontrol.data.model.RiskLevel
 import javax.inject.Inject
 import javax.inject.Singleton
 

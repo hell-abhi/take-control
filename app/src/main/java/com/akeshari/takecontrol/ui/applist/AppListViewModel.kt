@@ -1,9 +1,9 @@
-package com.akeshari.privacyguardian.ui.applist
+package com.akeshari.takecontrol.ui.applist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.akeshari.privacyguardian.data.model.AppPermissionInfo
-import com.akeshari.privacyguardian.data.repository.AppRepository
+import com.akeshari.takecontrol.data.model.AppPermissionInfo
+import com.akeshari.takecontrol.data.repository.AppRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

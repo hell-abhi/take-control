@@ -1,12 +1,12 @@
-package com.akeshari.privacyguardian.data.scanner
+package com.akeshari.takecontrol.data.scanner
 
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import com.akeshari.privacyguardian.data.model.AppPermissionInfo
-import com.akeshari.privacyguardian.data.model.PermissionDetail
-import com.akeshari.privacyguardian.util.PermissionClassifier
+import com.akeshari.takecontrol.data.model.AppPermissionInfo
+import com.akeshari.takecontrol.data.model.PermissionDetail
+import com.akeshari.takecontrol.util.PermissionClassifier
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

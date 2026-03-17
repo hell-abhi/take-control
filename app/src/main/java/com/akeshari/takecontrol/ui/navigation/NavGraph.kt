@@ -1,4 +1,4 @@
-package com.akeshari.privacyguardian.ui.navigation
+package com.akeshari.takecontrol.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavType
@@ -6,9 +6,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.akeshari.privacyguardian.ui.appdetail.AppDetailScreen
-import com.akeshari.privacyguardian.ui.applist.AppListScreen
-import com.akeshari.privacyguardian.ui.dashboard.DashboardScreen
+import com.akeshari.takecontrol.ui.appdetail.AppDetailScreen
+import com.akeshari.takecontrol.ui.applist.AppListScreen
+import com.akeshari.takecontrol.ui.dashboard.DashboardScreen
 
 object Routes {
     const val DASHBOARD = "dashboard"
