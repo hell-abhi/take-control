@@ -10,16 +10,22 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
+data class PermissionGroupAccess(
+    val groupName: String,
+    val icon: com.akeshari.takecontrol.data.model.PermissionGroup
+)
+
 data class AppUsageInfo(
     val packageName: String,
     val appName: String,
-    val lastOpened: String,         // "3 days ago", "Never", etc.
+    val lastOpened: String,
     val lastOpenedDays: Int,        // -1 = never, 0 = today
     val weeklyMinutes: Long,
+    val permissionGroups: List<PermissionGroupAccess>, // Location, Camera, etc.
     val dangerousPermissions: List<String>,
     val trackerCount: Int,
     val riskScore: Int,
-    val exposureRatio: Float        // permissions+trackers relative to usage (higher = worse)
+    val exposureRatio: Float
 )
 
 @Singleton
@@ -51,10 +57,10 @@ class ActivityMonitor @Inject constructor(
         )
 
         apps.filter { !it.isSystemApp }.mapNotNull { app ->
-            val dangerousPerms = app.permissions
-                .filter { it.isGranted && it.group in dangerousGroups }
-                .map { it.label }
-                .distinct()
+            val grantedDangerous = app.permissions.filter { it.isGranted && it.group in dangerousGroups }
+            val dangerousPerms = grantedDangerous.map { it.label }.distinct()
+            val permGroups = grantedDangerous.map { it.group }.distinct()
+                .map { PermissionGroupAccess(it.label.replace("Your ", ""), it) }
 
             // Skip apps with no privacy surface
             if (dangerousPerms.isEmpty() && app.trackers.isEmpty()) return@mapNotNull null
@@ -74,6 +80,7 @@ class ActivityMonitor @Inject constructor(
                 lastOpened = formatLastOpened(daysSince),
                 lastOpenedDays = daysSince,
                 weeklyMinutes = weeklyMin,
+                permissionGroups = permGroups,
                 dangerousPermissions = dangerousPerms,
                 trackerCount = app.trackers.size,
                 riskScore = app.riskScore,

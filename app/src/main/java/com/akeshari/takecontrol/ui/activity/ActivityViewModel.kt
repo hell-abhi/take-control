@@ -60,9 +60,11 @@ class ActivityViewModel @Inject constructor(
                 .sortedByDescending { it.exposureRatio }
                 .take(10)
 
-            val totalWithAccess = allUsage.count { it.dangerousPermissions.isNotEmpty() }
-            val usedThisWeek = allUsage.count { it.weeklyMinutes > 0 }
-            val notUsedWithPerms = allUsage.count { it.weeklyMinutes == 0L && it.dangerousPermissions.isNotEmpty() }
+            // Budget: only count apps with dangerous permissions (not tracker-only)
+            val withDangerousPerms = allUsage.filter { it.dangerousPermissions.isNotEmpty() }
+            val totalWithAccess = withDangerousPerms.size
+            val usedThisWeek = withDangerousPerms.count { it.weeklyMinutes > 0 }
+            val notUsedWithPerms = totalWithAccess - usedThisWeek
 
             _state.value = ActivityState(
                 isLoading = false,
