@@ -36,7 +36,12 @@ object Routes {
     const val PERMISSION_MATRIX_BASE = "permission_matrix"
     const val SETTINGS = "settings"
     const val APP_DETAIL = "app_detail/{packageName}"
-    const val PRE_INSTALL = "pre_install"
+    const val PRE_INSTALL = "pre_install?query={query}"
+    const val PRE_INSTALL_BASE = "pre_install"
+
+    fun preInstall(query: String? = null): String {
+        return if (query != null) "pre_install?query=$query" else "pre_install"
+    }
     const val ACTIVITY_MONITOR = "activity_monitor"
     const val ALTERNATIVES = "alternatives"
     const val THREATS = "threats?company={company}"
@@ -213,11 +218,29 @@ fun TakeControlNavHost() {
             }
 
             composable(Routes.ALTERNATIVES) {
-                AlternativesScreen(onBack = { navController.popBackStack() })
+                AlternativesScreen(
+                    onBack = { navController.popBackStack() },
+                    onLookup = { packageName ->
+                        navController.navigate(Routes.preInstall(packageName))
+                    }
+                )
             }
 
-            composable(Routes.PRE_INSTALL) {
-                PreInstallCheckScreen(onBack = { navController.popBackStack() })
+            composable(
+                route = Routes.PRE_INSTALL,
+                arguments = listOf(
+                    navArgument("query") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val query = backStackEntry.arguments?.getString("query")
+                PreInstallCheckScreen(
+                    onBack = { navController.popBackStack() },
+                    initialQuery = query
+                )
             }
 
             composable(Routes.SETTINGS) {

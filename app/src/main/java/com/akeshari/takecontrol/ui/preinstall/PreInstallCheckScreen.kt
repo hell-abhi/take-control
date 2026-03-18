@@ -3,6 +3,7 @@ package com.akeshari.takecontrol.ui.preinstall
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,8 +38,16 @@ import com.akeshari.takecontrol.ui.theme.*
 @Composable
 fun PreInstallCheckScreen(
     onBack: () -> Unit = {},
+    initialQuery: String? = null,
     viewModel: PreInstallCheckViewModel = hiltViewModel()
 ) {
+    // Auto-fill and analyze if navigated with a query
+    LaunchedEffect(initialQuery) {
+        if (initialQuery != null) {
+            viewModel.updateQuery(initialQuery)
+            viewModel.analyze()
+        }
+    }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 

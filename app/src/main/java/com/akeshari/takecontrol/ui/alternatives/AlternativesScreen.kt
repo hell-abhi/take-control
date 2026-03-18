@@ -38,7 +38,8 @@ import com.google.accompanist.drawablepainter.rememberDrawablePainter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlternativesScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onLookup: (String) -> Unit = {}
 ) {
     var showListView by remember { mutableStateOf(false) }
     val alternatives = PrivacyAlternativesData.ALL
@@ -64,9 +65,9 @@ fun AlternativesScreen(
         }
     ) { padding ->
         if (showListView) {
-            ListView(alternatives, Modifier.padding(padding))
+            ListView(alternatives, onLookup, Modifier.padding(padding))
         } else {
-            SwipeView(alternatives, Modifier.padding(padding))
+            SwipeView(alternatives, onLookup, Modifier.padding(padding))
         }
     }
 }
@@ -115,7 +116,7 @@ private fun getAppIcon(context: Context, packageName: String): Drawable? {
 // ── Swipe View ──────────────────────────────────────────────────────────────
 
 @Composable
-private fun SwipeView(alternatives: List<PrivacyAlternative>, modifier: Modifier) {
+private fun SwipeView(alternatives: List<PrivacyAlternative>, onLookup: (String) -> Unit, modifier: Modifier) {
     val pagerState = rememberPagerState(pageCount = { alternatives.size })
 
     Column(
@@ -132,7 +133,7 @@ private fun SwipeView(alternatives: List<PrivacyAlternative>, modifier: Modifier
             contentPadding = PaddingValues(horizontal = 28.dp),
             pageSpacing = 16.dp
         ) { page ->
-            SwipeCard(alternatives[page])
+            SwipeCard(alternatives[page], onLookup)
         }
 
         Spacer(Modifier.height(12.dp))
@@ -157,7 +158,7 @@ private fun SwipeView(alternatives: List<PrivacyAlternative>, modifier: Modifier
 }
 
 @Composable
-private fun SwipeCard(alt: PrivacyAlternative) {
+private fun SwipeCard(alt: PrivacyAlternative, onLookup: (String) -> Unit) {
     val context = LocalContext.current
 
     Card(
@@ -218,17 +219,30 @@ private fun SwipeCard(alt: PrivacyAlternative) {
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
-            OutlinedButton(
-                onClick = {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${alt.alternativePackage}")))
-                },
-                modifier = Modifier.fillMaxWidth().height(42.dp),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Icon(Icons.Outlined.OpenInNew, null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Get ${alt.alternative.split(" ").first()} on Play Store", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(14.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${alt.alternativePackage}")))
+                    },
+                    modifier = Modifier.weight(1f).height(40.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
+                ) {
+                    Icon(Icons.Outlined.OpenInNew, null, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Play Store", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                }
+                OutlinedButton(
+                    onClick = { onLookup(alt.alternativePackage) },
+                    modifier = Modifier.weight(1f).height(40.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
+                ) {
+                    Icon(Icons.Outlined.Search, null, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Analyze in Lookup", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
     }
@@ -237,7 +251,7 @@ private fun SwipeCard(alt: PrivacyAlternative) {
 // ── List View (card-based) ──────────────────────────────────────────────────
 
 @Composable
-private fun ListView(alternatives: List<PrivacyAlternative>, modifier: Modifier) {
+private fun ListView(alternatives: List<PrivacyAlternative>, onLookup: (String) -> Unit, modifier: Modifier) {
     val context = LocalContext.current
 
     Column(
@@ -333,18 +347,30 @@ private fun ListView(alternatives: List<PrivacyAlternative>, modifier: Modifier)
 
                     Spacer(Modifier.height(10.dp))
 
-                    // Get button
-                    OutlinedButton(
-                        onClick = {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${alt.alternativePackage}")))
-                        },
-                        modifier = Modifier.fillMaxWidth().height(36.dp),
-                        shape = RoundedCornerShape(6.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp)
-                    ) {
-                        Icon(Icons.Outlined.OpenInNew, null, modifier = Modifier.size(14.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Get ${alt.alternative.split(" ").first()}", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    // Action buttons
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OutlinedButton(
+                            onClick = {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${alt.alternativePackage}")))
+                            },
+                            modifier = Modifier.weight(1f).height(34.dp),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp)
+                        ) {
+                            Icon(Icons.Outlined.OpenInNew, null, modifier = Modifier.size(12.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Play Store", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                        OutlinedButton(
+                            onClick = { onLookup(alt.alternativePackage) },
+                            modifier = Modifier.weight(1f).height(34.dp),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp)
+                        ) {
+                            Icon(Icons.Outlined.Search, null, modifier = Modifier.size(12.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Analyze", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 }
             }

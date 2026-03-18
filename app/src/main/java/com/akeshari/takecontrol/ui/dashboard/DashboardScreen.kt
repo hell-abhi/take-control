@@ -92,6 +92,23 @@ fun DashboardScreen(
                     Icon(Icons.Outlined.Refresh, "Refresh", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+            // Trust badges
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.VerifiedUser, null, tint = RiskSafe, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("100% Local", style = MaterialTheme.typography.labelSmall, color = RiskSafe, fontWeight = FontWeight.Medium)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Code, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Open Source", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
+                }
+            }
+
             Spacer(Modifier.height(12.dp))
 
                 // 1. Compact Score Banner
@@ -229,6 +246,9 @@ private fun CompactScoreCard(
 
             AnimatedVisibility(visible = expanded, enter = expandVertically(), exit = shrinkVertically()) {
                 Column(modifier = Modifier.padding(top = 8.dp)) {
+                    // Permission breakdown
+                    Text("Permissions", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(4.dp))
                     if (privacyScore.groupBreakdowns.isNotEmpty()) {
                         privacyScore.groupBreakdowns.forEach { breakdown ->
                             GroupBreakdownRow(breakdown, onFix = { onFixGroup(breakdown.group.name) })
@@ -236,6 +256,27 @@ private fun CompactScoreCard(
                         }
                     } else {
                         Text("No sensitive permissions granted!", style = MaterialTheme.typography.bodySmall, color = RiskSafe)
+                    }
+
+                    // Tracker breakdown
+                    Spacer(Modifier.height(10.dp))
+                    Text("Trackers", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(4.dp))
+                    val trackerColor = when {
+                        privacyScore.trackerScore >= 75 -> RiskSafe
+                        privacyScore.trackerScore >= 50 -> RiskMedium
+                        else -> RiskHigh
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).background(trackerColor.copy(alpha = 0.06f)).padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Outlined.Visibility, null, tint = trackerColor, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Tracker exposure score: ${privacyScore.trackerScore}/100", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                            Text("Ad & profiling SDKs weigh 3×, social 2×, analytics 1×", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }
