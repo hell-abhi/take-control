@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -148,7 +149,7 @@ private fun RiskScoreHeader(
     }
 
     Card(
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
             containerColor = riskColor.copy(alpha = 0.1f)
         )
@@ -161,24 +162,33 @@ private fun RiskScoreHeader(
         ) {
             Box(
                 modifier = Modifier
-                    .size(72.dp)
-                    .clip(CircleShape)
+                    .size(90.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(riskColor.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     "$riskScore",
-                    fontSize = 28.sp,
+                    fontSize = 44.sp,
+                    fontFamily = PressStart2P,
                     fontWeight = FontWeight.Bold,
                     color = riskColor
                 )
             }
             Spacer(Modifier.height(12.dp))
-            Text(
-                riskLabel,
-                style = MaterialTheme.typography.titleLarge,
-                color = riskColor
-            )
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(riskColor)
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    riskLabel,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
             Spacer(Modifier.height(4.dp))
             Text(
                 "$grantedCount of $totalCount permissions granted",
@@ -199,11 +209,24 @@ private fun RiskScoreHeader(
 
 @Composable
 private fun PermissionGroupHeader(group: PermissionGroup, count: Int) {
+    val riskColor = when (group.defaultRisk) {
+        RiskLevel.CRITICAL -> RiskCritical
+        RiskLevel.HIGH -> RiskHigh
+        RiskLevel.MEDIUM -> RiskMedium
+        RiskLevel.LOW -> RiskLow
+    }
     Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(4.dp, 22.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(riskColor)
+        )
+        Spacer(Modifier.width(8.dp))
         Icon(
             group.icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = riskColor,
             modifier = Modifier.size(22.dp)
         )
         Spacer(Modifier.width(10.dp))
@@ -225,7 +248,7 @@ private fun PermissionItem(permission: PermissionDetail) {
     }
 
     Card(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(6.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
@@ -238,8 +261,8 @@ private fun PermissionItem(permission: PermissionDetail) {
         ) {
             Box(
                 modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
+                    .size(10.dp)
+                    .clip(RoundedCornerShape(2.dp))
                     .background(if (permission.isGranted) riskColor else RiskLow)
             )
             Spacer(Modifier.width(12.dp))

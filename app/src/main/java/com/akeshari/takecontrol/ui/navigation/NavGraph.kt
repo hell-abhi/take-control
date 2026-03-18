@@ -67,7 +67,9 @@ fun TakeControlNavHost() {
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                NavigationBar {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ) {
                     bottomNavItems.forEach { item ->
                         val selected = when (item.route) {
                             Routes.DASHBOARD -> currentRoute == Routes.DASHBOARD
@@ -89,13 +91,15 @@ fun TakeControlNavHost() {
                             icon = {
                                 Icon(
                                     if (selected) item.selectedIcon else item.unselectedIcon,
-                                    contentDescription = item.label
+                                    contentDescription = item.label,
+                                    tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             },
                             label = {
                                 Text(
                                     item.label,
-                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         )

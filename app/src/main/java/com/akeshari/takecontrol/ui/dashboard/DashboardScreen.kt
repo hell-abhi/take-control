@@ -69,7 +69,7 @@ fun DashboardScreen(
                             modifier = Modifier.size(28.dp)
                         )
                         Spacer(Modifier.width(10.dp))
-                        Text("Take Control", fontWeight = FontWeight.Bold)
+                        Text("Take Control", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
                 },
                 actions = {
@@ -113,7 +113,8 @@ fun DashboardScreen(
                 // Permission Groups Overview
                 Text(
                     "Permission Overview",
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(12.dp))
                 PermissionGroupGrid(state.permissionGroupCounts)
@@ -128,7 +129,8 @@ fun DashboardScreen(
                 ) {
                     Text(
                         "Highest Risk Apps",
-                        style = MaterialTheme.typography.titleLarge
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
                     )
                     TextButton(onClick = onViewAllApps) {
                         Text("View All")
@@ -192,7 +194,7 @@ private fun PrivacyScoreCard(
                 }
 
                 Canvas(modifier = Modifier.size(150.dp)) {
-                    val strokeWidth = 14.dp.toPx()
+                    val strokeWidth = 18.dp.toPx()
                     drawArc(
                         color = Color.Gray.copy(alpha = 0.2f),
                         startAngle = 135f,
@@ -200,7 +202,7 @@ private fun PrivacyScoreCard(
                         useCenter = false,
                         topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
                         size = Size(size.width - strokeWidth, size.height - strokeWidth),
-                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Square)
                     )
                     drawArc(
                         color = scoreColor,
@@ -209,14 +211,14 @@ private fun PrivacyScoreCard(
                         useCenter = false,
                         topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
                         size = Size(size.width - strokeWidth, size.height - strokeWidth),
-                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Square)
                     )
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         "${animatedScore.toInt()}",
-                        fontSize = 42.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontSize = 52.sp,
+                        fontFamily = PressStart2P, fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
@@ -321,7 +323,7 @@ private fun GroupBreakdownRow(breakdown: GroupBreakdown, onFix: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(4.dp))
             .background(riskColor.copy(alpha = 0.06f))
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -361,12 +363,14 @@ private fun GroupBreakdownRow(breakdown: GroupBreakdown, onFix: () -> Unit) {
         }
 
         // Fix button
-        TextButton(
+        Button(
             onClick = onFix,
-            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-            modifier = Modifier.height(32.dp)
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+            modifier = Modifier.height(32.dp),
+            shape = RoundedCornerShape(4.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = riskColor)
         ) {
-            Text("Fix", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text("Fix", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
         }
     }
 }
@@ -380,6 +384,7 @@ private fun StatItem(value: String, label: String) {
             value,
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
+            fontFamily = JetBrainsMono,
             color = MaterialTheme.colorScheme.primary
         )
         Text(
@@ -419,7 +424,7 @@ private fun PermissionGroupChip(
     riskColor: Color
 ) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(6.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
@@ -431,7 +436,7 @@ private fun PermissionGroupChip(
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(6.dp))
                     .background(riskColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
@@ -441,7 +446,8 @@ private fun PermissionGroupChip(
             Text(
                 "$count apps",
                 style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = JetBrainsMono
             )
             Text(
                 label,
@@ -465,7 +471,7 @@ private fun RiskyAppCard(app: AppPermissionInfo, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(6.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
@@ -478,15 +484,16 @@ private fun RiskyAppCard(app: AppPermissionInfo, onClick: () -> Unit) {
         ) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
+                    .size(50.dp)
+                    .clip(RoundedCornerShape(6.dp))
                     .background(riskColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     "${app.riskScore}",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
+                    fontSize = 18.sp,
+                    fontFamily = JetBrainsMono,
                     color = riskColor
                 )
             }
@@ -505,6 +512,24 @@ private fun RiskyAppCard(app: AppPermissionInfo, onClick: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(Modifier.height(6.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(riskColor.copy(alpha = 0.15f))
+                ) {
+                    val granted = app.permissions.count { it.isGranted }
+                    val total = app.permissions.size
+                    val fraction = if (total > 0) granted.toFloat() / total else 0f
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(fraction)
+                            .background(riskColor)
+                    )
+                }
             }
 
             Icon(

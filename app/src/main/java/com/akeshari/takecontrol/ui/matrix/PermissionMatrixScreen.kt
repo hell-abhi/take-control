@@ -125,7 +125,7 @@ fun PermissionMatrixScreen(
                 placeholder = { Text("Search apps...") },
                 leadingIcon = { Icon(Icons.Outlined.Search, "Search") },
                 singleLine = true,
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(6.dp)
             )
 
             // Filters
@@ -205,7 +205,7 @@ private fun PermissionDetailSheet(
                 Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .clip(CircleShape)
+                        .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -356,7 +356,7 @@ private fun TutorialStep(step: String, text: String) {
         Box(
             modifier = Modifier
                 .size(22.dp)
-                .clip(CircleShape)
+                .clip(RoundedCornerShape(4.dp))
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
@@ -496,7 +496,7 @@ private fun LegendItem(color: Color, label: String, description: String) {
         Box(
             modifier = Modifier
                 .size(12.dp)
-                .clip(CircleShape)
+                .clip(RoundedCornerShape(2.dp))
                 .background(color)
         )
         Spacer(Modifier.width(10.dp))
@@ -571,6 +571,12 @@ private fun ColumnHeaders(
         ) {
             columns.forEach { group ->
                 val isHighlighted = group == highlightedGroup
+                val riskColor = when (group.defaultRisk) {
+                    RiskLevel.CRITICAL -> RiskCritical
+                    RiskLevel.HIGH -> RiskHigh
+                    RiskLevel.MEDIUM -> RiskMedium
+                    RiskLevel.LOW -> RiskLow
+                }
                 Column(
                     modifier = Modifier
                         .width(52.dp)
@@ -588,7 +594,7 @@ private fun ColumnHeaders(
                         group.icon,
                         contentDescription = group.label,
                         modifier = Modifier.size(if (isHighlighted) 22.dp else 18.dp),
-                        tint = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (isHighlighted) MaterialTheme.colorScheme.primary else riskColor
                     )
                     Text(
                         group.label.replace("Your ", ""),
@@ -622,7 +628,7 @@ private fun AppPermissionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
+            .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
@@ -719,14 +725,14 @@ private fun PermissionDot(state: CellState) {
     Box(
         modifier = Modifier
             .size(14.dp)
-            .clip(CircleShape)
+            .clip(RoundedCornerShape(2.dp))
             .background(color.copy(alpha = 0.25f))
-            .border(1.5.dp, borderColor, CircleShape)
+            .border(1.5.dp, borderColor, RoundedCornerShape(2.dp))
     ) {
         Box(
             modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
+                .size(10.dp)
+                .clip(RoundedCornerShape(2.dp))
                 .background(color)
                 .align(Alignment.Center)
         )
