@@ -8,6 +8,8 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -253,28 +255,14 @@ private fun ZombieRow(app: AppUsageInfo, onAppClick: (String) -> Unit) {
                 Text(app.lastOpened, style = MaterialTheme.typography.labelSmall, color = RiskHigh, fontWeight = FontWeight.Medium)
             }
             Spacer(Modifier.height(6.dp))
-            // Permission chips — use FlowRow-like wrapping via multiple rows
-            val chips = app.permissionGroups.take(6)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                chips.take(3).forEach { pg ->
+            @OptIn(ExperimentalLayoutApi::class)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                app.permissionGroups.forEach { pg ->
                     val c = permGroupColor(pg.icon.defaultRisk)
                     Row(Modifier.clip(RoundedCornerShape(4.dp)).background(c.copy(alpha = 0.1f)).padding(horizontal = 5.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(pg.icon.icon, null, tint = c, modifier = Modifier.size(11.dp))
                         Spacer(Modifier.width(2.dp))
-                        Text(pg.groupName.take(8), fontSize = 9.sp, color = c, fontWeight = FontWeight.Medium, maxLines = 1)
-                    }
-                }
-            }
-            if (chips.size > 3) {
-                Spacer(Modifier.height(3.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    chips.drop(3).forEach { pg ->
-                        val c = permGroupColor(pg.icon.defaultRisk)
-                        Row(Modifier.clip(RoundedCornerShape(4.dp)).background(c.copy(alpha = 0.1f)).padding(horizontal = 5.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(pg.icon.icon, null, tint = c, modifier = Modifier.size(11.dp))
-                            Spacer(Modifier.width(2.dp))
-                            Text(pg.groupName.take(8), fontSize = 9.sp, color = c, fontWeight = FontWeight.Medium, maxLines = 1)
-                        }
+                        Text(pg.groupName, fontSize = 9.sp, color = c, fontWeight = FontWeight.Medium, maxLines = 1)
                     }
                 }
             }
@@ -302,15 +290,23 @@ private fun ExposureRow(app: AppUsageInfo, onAppClick: (String) -> Unit) {
             }
             Spacer(Modifier.height(6.dp))
 
-            // Permission icons + tracker count
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                app.permissionGroups.take(5).forEach { pg ->
+            // Permission chips + tracker count
+            @OptIn(ExperimentalLayoutApi::class)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                app.permissionGroups.forEach { pg ->
                     val c = permGroupColor(pg.icon.defaultRisk)
-                    Icon(pg.icon.icon, null, tint = c, modifier = Modifier.size(14.dp).padding(end = 3.dp))
+                    Row(Modifier.clip(RoundedCornerShape(4.dp)).background(c.copy(alpha = 0.1f)).padding(horizontal = 5.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(pg.icon.icon, null, tint = c, modifier = Modifier.size(11.dp))
+                        Spacer(Modifier.width(2.dp))
+                        Text(pg.groupName, fontSize = 9.sp, color = c, fontWeight = FontWeight.Medium, maxLines = 1)
+                    }
                 }
-                Text("${app.dangerousPermissions.size} perms", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (app.trackerCount > 0) {
-                    Text(" · ${app.trackerCount} trackers", fontSize = 9.sp, color = RiskHigh)
+                    Row(Modifier.clip(RoundedCornerShape(4.dp)).background(RiskHigh.copy(alpha = 0.1f)).padding(horizontal = 5.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.Visibility, null, tint = RiskHigh, modifier = Modifier.size(11.dp))
+                        Spacer(Modifier.width(2.dp))
+                        Text("${app.trackerCount} trackers", fontSize = 9.sp, color = RiskHigh, fontWeight = FontWeight.Medium)
+                    }
                 }
             }
         }

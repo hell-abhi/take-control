@@ -55,10 +55,11 @@ class ActivityViewModel @Inject constructor(
                 .filter { it.dangerousPermissions.isNotEmpty() }
                 .sortedByDescending { it.dangerousPermissions.size }
 
+            // All apps with dangerous permissions that weren't used this week (minus zombies which have their own section)
             val overExposed = allUsage
-                .filter { it.lastOpenedDays < 30 && it.lastOpenedDays != -1 } // exclude zombies
+                .filter { !(it.lastOpenedDays >= 30 || it.lastOpenedDays == -1) || it.dangerousPermissions.isEmpty() }
+                .filter { it.dangerousPermissions.isNotEmpty() }
                 .sortedByDescending { it.exposureRatio }
-                .take(10)
 
             // Budget: only count apps with dangerous permissions (not tracker-only)
             val withDangerousPerms = allUsage.filter { it.dangerousPermissions.isNotEmpty() }
