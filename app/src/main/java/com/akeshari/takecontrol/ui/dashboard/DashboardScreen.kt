@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import android.content.Intent
+import android.net.Uri
 import com.akeshari.takecontrol.data.database.entity.PermissionChangeEntity
 import com.akeshari.takecontrol.data.model.*
 import com.akeshari.takecontrol.ui.navigation.Routes
@@ -87,16 +89,7 @@ fun DashboardScreen(
             ) {
                 Icon(Icons.Outlined.Lock, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.width(10.dp))
-                Text("Take Control", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Spacer(Modifier.weight(1f))
-                // Trust badges as subtle chips
-                Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(RiskSafe.copy(alpha = 0.08f)).padding(horizontal = 6.dp, vertical = 2.dp)) {
-                    Text("Local", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = RiskSafe)
-                }
-                Spacer(Modifier.width(4.dp))
-                Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(horizontal = 6.dp, vertical = 2.dp)) {
-                    Text("OSS", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                Text("Take Control", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
                 IconButton(onClick = { viewModel.refresh() }, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Outlined.Refresh, "Refresh", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                 }
@@ -105,6 +98,11 @@ fun DashboardScreen(
 
                 // 1. Compact Score Banner
                 CompactScoreCard(state.privacyScore, state.summary, state.companyOverviews, onFixGroup)
+
+                Spacer(Modifier.height(8.dp))
+
+                // Trust badges — linked
+                TrustBadges()
 
                 Spacer(Modifier.height(14.dp))
 
@@ -142,6 +140,46 @@ fun DashboardScreen(
                 }
 
             Spacer(Modifier.height(20.dp))
+        }
+    }
+}
+
+// ── Trust Badges ────────────────────────────────────────────────────────────
+
+@Composable
+private fun TrustBadges() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Card(
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(containerColor = RiskSafe.copy(alpha = 0.06f)),
+            modifier = Modifier.weight(1f)
+        ) {
+            Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.VerifiedUser, null, tint = RiskSafe, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Column {
+                    Text("100% Local", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = RiskSafe)
+                    Text("Nothing leaves your device", style = MaterialTheme.typography.labelSmall, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+        Card(
+            onClick = {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/hell-abhi/take-control")))
+            },
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            modifier = Modifier.weight(1f)
+        ) {
+            Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.Code, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Column {
+                    Text("Open Source", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                    Text("View on GitHub", style = MaterialTheme.typography.labelSmall, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         }
     }
 }
