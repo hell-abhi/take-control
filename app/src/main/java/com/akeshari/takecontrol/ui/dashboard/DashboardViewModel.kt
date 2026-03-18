@@ -48,7 +48,7 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)
             try {
-                val apps = repository.getInstalledApps(forceRefresh = true)
+                val apps = repository.getInstalledApps(forceRefresh = false)
                 val userApps = apps.filter { !it.isSystemApp }
                 val systemApps = apps.filter { it.isSystemApp }
 

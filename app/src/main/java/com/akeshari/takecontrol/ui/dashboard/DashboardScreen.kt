@@ -121,7 +121,7 @@ fun DashboardScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(12.dp))
-                PermissionGroupGrid(state.permissionGroupCounts)
+                PermissionGroupGrid(state.permissionGroupCounts, onFixGroup)
 
                 Spacer(Modifier.height(24.dp))
 
@@ -254,9 +254,8 @@ private fun PrivacyScoreCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                StatItem(value = "$userAppCount", label = "Installed Apps")
-                StatItem(value = "$totalPermissions", label = "Permissions Granted")
-                StatItem(value = "$systemAppCount", label = "System Apps")
+                StatItem(value = "$userAppCount", label = "Apps")
+                StatItem(value = "$totalPermissions", label = "Granted")
             }
 
             Spacer(Modifier.height(16.dp))
@@ -415,7 +414,7 @@ private fun StatItem(value: String, label: String) {
 }
 
 @Composable
-private fun PermissionGroupGrid(groupCounts: Map<PermissionGroup, Int>) {
+private fun PermissionGroupGrid(groupCounts: Map<PermissionGroup, Int>, onGroupClick: (String) -> Unit) {
     val groups = PermissionGroup.entries.filter { groupCounts.containsKey(it) }
 
     LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -429,7 +428,8 @@ private fun PermissionGroupGrid(groupCounts: Map<PermissionGroup, Int>) {
                     RiskLevel.HIGH -> RiskHigh
                     RiskLevel.MEDIUM -> RiskMedium
                     RiskLevel.LOW -> RiskLow
-                }
+                },
+                onClick = { onGroupClick(group.name) }
             )
         }
     }
@@ -440,9 +440,11 @@ private fun PermissionGroupChip(
     icon: ImageVector,
     label: String,
     count: Int,
-    riskColor: Color
+    riskColor: Color,
+    onClick: () -> Unit
 ) {
     Card(
+        onClick = onClick,
         shape = RoundedCornerShape(6.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant

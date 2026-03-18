@@ -55,16 +55,7 @@ fun AppDetailScreen(
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back")
                     }
                 },
-                actions = {
-                    IconButton(onClick = {
-                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.fromParts("package", packageName, null)
-                        }
-                        context.startActivity(intent)
-                    }) {
-                        Icon(Icons.Outlined.Settings, "App Settings")
-                    }
-                }
+                actions = {}
             )
         }
     ) { padding ->
@@ -265,10 +256,15 @@ private fun ActionPanel(packageName: String, isSystemApp: Boolean) {
                 // Restrict Background
                 OutlinedButton(
                     onClick = {
-                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.fromParts("package", packageName, null)
+                        try {
+                            val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.fromParts("package", packageName, null)
+                            }
+                            context.startActivity(intent)
                         }
-                        context.startActivity(intent)
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(6.dp),
@@ -283,7 +279,7 @@ private fun ActionPanel(packageName: String, isSystemApp: Boolean) {
                 if (!isSystemApp) {
                     Button(
                         onClick = {
-                            val intent = Intent(Intent.ACTION_DELETE).apply {
+                            val intent = Intent(Intent.ACTION_UNINSTALL_PACKAGE).apply {
                                 data = Uri.fromParts("package", packageName, null)
                             }
                             context.startActivity(intent)
