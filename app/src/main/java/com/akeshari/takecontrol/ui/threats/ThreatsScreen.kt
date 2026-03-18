@@ -48,7 +48,7 @@ fun ThreatsScreen(
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(Modifier.width(10.dp))
-                        Text("Who's Watching", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        Text("Tracker Radar", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                     }
                 }
             )

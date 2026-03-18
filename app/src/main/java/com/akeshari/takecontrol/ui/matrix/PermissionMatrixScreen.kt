@@ -110,6 +110,14 @@ fun PermissionMatrixScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // Purpose text
+            Text(
+                "Every dot = a permission an app has. Tap any column or app to explore.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+
             // Legend
             AnimatedVisibility(visible = showLegend) {
                 LegendCard()

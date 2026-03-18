@@ -50,7 +50,7 @@ fun PreInstallCheckScreen(
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(Modifier.width(10.dp))
-                        Text("Pre-Install Check", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        Text("App Lookup", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                     }
                 }
             )
@@ -183,8 +183,8 @@ fun PreInstallCheckScreen(
 private fun SearchSection(state: PreInstallState, viewModel: PreInstallCheckViewModel) {
     Column {
         Text(
-            "Check any app before installing",
-            style = MaterialTheme.typography.bodyMedium,
+            "Investigate any app — see its permissions and data practices before you install",
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.height(8.dp))

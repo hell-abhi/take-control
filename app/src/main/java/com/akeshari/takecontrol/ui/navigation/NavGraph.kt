@@ -55,11 +55,11 @@ data class BottomNavItem(
 )
 
 val bottomNavItems = listOf(
-    BottomNavItem(Routes.DASHBOARD, "Home", Icons.Filled.Shield, Icons.Outlined.Shield),
-    BottomNavItem(Routes.THREATS, "Threats", Icons.Filled.Visibility, Icons.Outlined.Visibility),
-    BottomNavItem(Routes.PERMISSION_MATRIX_BASE, "Matrix", Icons.Filled.GridView, Icons.Outlined.GridView),
-    BottomNavItem(Routes.PRE_INSTALL, "Check", Icons.Filled.Search, Icons.Outlined.Search),
-    BottomNavItem(Routes.SETTINGS, "Settings", Icons.Filled.Settings, Icons.Outlined.Settings)
+    BottomNavItem(Routes.DASHBOARD, "Score", Icons.Filled.Shield, Icons.Outlined.Shield),
+    BottomNavItem(Routes.THREATS, "Radar", Icons.Filled.Visibility, Icons.Outlined.Visibility),
+    BottomNavItem(Routes.PERMISSION_MATRIX_BASE, "Apps", Icons.Filled.GridView, Icons.Outlined.GridView),
+    BottomNavItem(Routes.PRE_INSTALL, "Lookup", Icons.Filled.Search, Icons.Outlined.Search),
+    BottomNavItem(Routes.SETTINGS, "About", Icons.Filled.Settings, Icons.Outlined.Settings)
 )
 
 @Composable

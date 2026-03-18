@@ -4,12 +4,16 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Shield shape -->
+    <!-- Shield outline (matches Material Icons Shield, centered in safe zone) -->
     <path
-        android:fillColor="#0D7377"
-        android:pathData="M54,24L30,34v16c0,15.4 10.2,29.8 24,33.4C67.8,79.8 78,65.4 78,50V34L54,24z" />
-    <!-- Checkmark -->
+        android:fillColor="#00FFCC"
+        android:pathData="M54,22 L28,34 L28,52 C28,67.6 39.2,82.2 54,86 C68.8,82.2 80,67.6 80,52 L80,34 Z" />
+    <!-- Inner shield cutout for outlined look -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M46,55l-6,-6l-2.8,2.8L46,60.6l16,-16L59.2,41.8L46,55z" />
+        android:fillColor="#0A0A1A"
+        android:pathData="M54,26.8 L32,37 L32,52 C32,65.4 41.8,78 54,81.6 C66.2,78 76,65.4 76,52 L76,37 Z" />
+    <!-- Lock body -->
+    <path
+        android:fillColor="#00FFCC"
+        android:pathData="M47,54 L47,50 C47,46.14 50.14,43 54,43 C57.86,43 61,46.14 61,50 L61,54 L63,54 C64.1,54 65,54.9 65,56 L65,66 C65,67.1 64.1,68 63,68 L45,68 C43.9,68 43,67.1 43,66 L43,56 C43,54.9 43.9,54 45,54 Z M50,50 C50,47.8 51.8,46 54,46 C56.2,46 58,47.8 58,50 L58,54 L50,54 Z" />
 </vector>
