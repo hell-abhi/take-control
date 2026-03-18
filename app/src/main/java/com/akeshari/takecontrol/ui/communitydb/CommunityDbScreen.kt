@@ -3,19 +3,22 @@ package com.akeshari.takecontrol.ui.communitydb
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -25,6 +28,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.akeshari.takecontrol.data.model.PermissionGroup
+import com.akeshari.takecontrol.data.model.RiskLevel
+import com.akeshari.takecontrol.data.scanner.PlayStorePermissionGroup
 import com.akeshari.takecontrol.data.scanner.PrivacyDbClient
 import com.akeshari.takecontrol.data.scanner.PrivacyDbReport
 import com.akeshari.takecontrol.ui.theme.*
@@ -44,7 +50,9 @@ import javax.inject.Inject
 
 data class CommunityDbState(
     val isLoading: Boolean = true,
-    val apps: List<PrivacyDbReport> = emptyList(),
+    val allApps: List<PrivacyDbReport> = emptyList(),
+    val filteredApps: List<PrivacyDbReport> = emptyList(),
+    val searchQuery: String = "",
     val error: String? = null
 )
 
@@ -57,6 +65,24 @@ class CommunityDbViewModel @Inject constructor(
 
     init { load() }
 
+    fun search(query: String) {
+        _state.value = _state.value.copy(searchQuery = query)
+        applyFilter()
+    }
+
+    private fun applyFilter() {
+        val current = _state.value
+        val filtered = if (current.searchQuery.isBlank()) {
+            current.allApps
+        } else {
+            current.allApps.filter {
+                it.appName.contains(current.searchQuery, ignoreCase = true) ||
+                        it.packageName.contains(current.searchQuery, ignoreCase = true)
+            }
+        }
+        _state.value = current.copy(filteredApps = filtered)
+    }
+
     private fun load() {
         viewModelScope.launch {
             _state.value = CommunityDbState(isLoading = true)
@@ -64,7 +90,7 @@ class CommunityDbViewModel @Inject constructor(
                 val packages = fetchIndex()
                 val reports = packages.mapNotNull { client.fetch(it) }
                     .sortedBy { it.appName.lowercase() }
-                _state.value = CommunityDbState(isLoading = false, apps = reports)
+                _state.value = CommunityDbState(isLoading = false, allApps = reports, filteredApps = reports)
             } catch (e: Exception) {
                 _state.value = CommunityDbState(isLoading = false, error = "Failed to load: ${e.message}")
             }
@@ -88,6 +114,42 @@ class CommunityDbViewModel @Inject constructor(
     }
 }
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+private val MATRIX_COLUMNS = listOf(
+    PermissionGroup.LOCATION,
+    PermissionGroup.CAMERA,
+    PermissionGroup.MICROPHONE,
+    PermissionGroup.CONTACTS,
+    PermissionGroup.STORAGE,
+    PermissionGroup.SMS,
+    PermissionGroup.PHONE,
+    PermissionGroup.SENSORS
+)
+
+private fun mapToGroup(groupName: String): PermissionGroup? = when (groupName.lowercase()) {
+    "location" -> PermissionGroup.LOCATION
+    "camera" -> PermissionGroup.CAMERA
+    "microphone" -> PermissionGroup.MICROPHONE
+    "contacts", "identity" -> PermissionGroup.CONTACTS
+    "storage", "photos/media/files", "photos and videos", "music and audio" -> PermissionGroup.STORAGE
+    "sms" -> PermissionGroup.SMS
+    "phone", "device id & call information" -> PermissionGroup.PHONE
+    "sensors" -> PermissionGroup.SENSORS
+    else -> null
+}
+
+private fun appHasGroup(app: PrivacyDbReport, group: PermissionGroup): Boolean {
+    return app.permissionGroups.any { mapToGroup(it.groupName) == group && it.permissions.isNotEmpty() }
+}
+
+private fun groupColor(group: PermissionGroup): Color = when (group.defaultRisk) {
+    RiskLevel.CRITICAL -> RiskCritical
+    RiskLevel.HIGH -> RiskHigh
+    RiskLevel.MEDIUM -> RiskMedium
+    RiskLevel.LOW -> RiskLow
+}
+
 // ── Screen ──────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,111 +166,141 @@ fun CommunityDbScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Community DB", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 13.sp) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } }
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } },
+                actions = {
+                    IconButton(onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/hell-abhi/privacy-db")))
+                    }) {
+                        Icon(Icons.Outlined.Code, "Contribute")
+                    }
+                }
             )
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Header
-            item {
-                Text(
-                    "Pre-scanned app permissions from the open-source Privacy DB. Tap any app to see full details.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            // Description
+            Text(
+                "Open-source privacy database. Tap any app for full details. Tap { } to contribute.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
 
-            // Contribute
-            item {
-                Card(
-                    onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/hell-abhi/privacy-db"))) },
-                    shape = RoundedCornerShape(8.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
-                ) {
-                    Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Code, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text("Contribute", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
-                            Text("Submit a Play Store URL to add an app", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Icon(Icons.Outlined.OpenInNew, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                    }
-                }
-            }
+            // Search
+            OutlinedTextField(
+                value = state.searchQuery,
+                onValueChange = { viewModel.search(it) },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                placeholder = { Text("Search apps...") },
+                leadingIcon = { Icon(Icons.Outlined.Search, "Search") },
+                singleLine = true,
+                shape = RoundedCornerShape(6.dp)
+            )
 
-            // Loading
             if (state.isLoading) {
-                item {
-                    Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                            Spacer(Modifier.height(8.dp))
-                            Text("Loading ${""} apps...", style = MaterialTheme.typography.bodySmall)
-                        }
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.height(8.dp))
+                        Text("Loading privacy database...", style = MaterialTheme.typography.bodySmall)
                     }
                 }
-            }
-
-            // Error
-            state.error?.let { error ->
-                item {
-                    Text(error, style = MaterialTheme.typography.bodySmall, color = RiskCritical)
+            } else if (state.error != null) {
+                Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+                    Text(state.error!!, style = MaterialTheme.typography.bodyMedium, color = RiskCritical)
                 }
-            }
+            } else {
+                // Count
+                Text(
+                    "${state.filteredApps.size} apps",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
 
-            // App count
-            if (!state.isLoading && state.apps.isNotEmpty()) {
-                item {
-                    Text("${state.apps.size} apps scanned", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
+                // Column headers
+                val scrollState = rememberScrollState()
+                ColumnHeaders(scrollState)
+                HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
+                // App rows
+                LazyColumn(Modifier.fillMaxSize()) {
+                    items(state.filteredApps, key = { it.packageName }) { app ->
+                        AppMatrixRow(app, scrollState, onLookup)
+                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                    }
                 }
-            }
-
-            // App rows
-            items(state.apps, key = { it.packageName }) { app ->
-                AppRow(app, onLookup)
             }
         }
     }
 }
+
+// ── Column Headers ──────────────────────────────────────────────────────────
 
 @Composable
-private fun AppRow(app: PrivacyDbReport, onLookup: (String) -> Unit) {
-    val totalPerms = app.permissionGroups.sumOf { it.permissions.size }
-    val riskColor = when {
-        totalPerms > 20 -> RiskCritical
-        totalPerms > 10 -> RiskHigh
-        totalPerms > 5 -> RiskMedium
-        else -> RiskLow
-    }
+private fun ColumnHeaders(scrollState: androidx.compose.foundation.ScrollState) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        // App name column
+        Spacer(Modifier.width(16.dp))
+        Box(Modifier.width(120.dp))
 
-    Card(
-        onClick = { onLookup(app.packageName) },
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            // Permission count badge
-            Box(
-                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(riskColor.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("$totalPerms", fontFamily = JetBrainsMono, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = riskColor)
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(app.appName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    app.category?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    app.rating?.let { Text("$it\u2605", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    app.downloads?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        // Permission columns
+        Row(Modifier.horizontalScroll(scrollState)) {
+            MATRIX_COLUMNS.forEach { group ->
+                Box(Modifier.width(40.dp), contentAlignment = Alignment.Center) {
+                    Icon(group.icon, group.label, tint = groupColor(group), modifier = Modifier.size(18.dp))
                 }
             }
-            Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
         }
     }
 }
+
+// ── App Matrix Row ──────────────────────────────────────────────────────────
+
+@Composable
+private fun AppMatrixRow(
+    app: PrivacyDbReport,
+    scrollState: androidx.compose.foundation.ScrollState,
+    onLookup: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onLookup(app.packageName) }
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // App info
+        Spacer(Modifier.width(16.dp))
+        Column(
+            modifier = Modifier.width(120.dp)
+        ) {
+            Text(
+                app.appName,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                app.category?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
+                }
+            }
+        }
+
+        // Permission dots
+        Row(Modifier.horizontalScroll(scrollState)) {
+            MATRIX_COLUMNS.forEach { group ->
+                Box(Modifier.width(40.dp), contentAlignment = Alignment.Center) {
+                    if (appHasGroup(app, group)) {
+                        Box(
+                            Modifier.size(12.dp).clip(RoundedCornerShape(3.dp)).background(groupColor(group))
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
