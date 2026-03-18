@@ -333,9 +333,10 @@ private fun QuickActionsRow(onNavigate: (String) -> Unit) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             QuickAction(Icons.Outlined.Timeline, "Activity", Modifier.weight(1f)) { onNavigate(Routes.ACTIVITY_MONITOR) }
             QuickAction(Icons.Outlined.SwapHoriz, "Privacy Picks", Modifier.weight(1f)) { onNavigate(Routes.ALTERNATIVES) }
+            QuickAction(Icons.Outlined.Storage, "Community DB", Modifier.weight(1f)) { onNavigate(Routes.COMMUNITY_DB) }
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            QuickAction(Icons.Outlined.Search, "App Lookup", Modifier.weight(1f)) { onNavigate(Routes.PRE_INSTALL) }
+            QuickAction(Icons.Outlined.Search, "App Lookup", Modifier.weight(1f)) { onNavigate(Routes.preInstall()) }
             QuickAction(Icons.Outlined.Info, "About", Modifier.weight(1f)) { onNavigate(Routes.SETTINGS) }
         }
     }

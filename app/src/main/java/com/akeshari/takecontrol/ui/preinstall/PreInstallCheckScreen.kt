@@ -43,7 +43,7 @@ fun PreInstallCheckScreen(
 ) {
     // Auto-fill and analyze if navigated with a query
     LaunchedEffect(initialQuery) {
-        if (initialQuery != null) {
+        if (initialQuery != null && initialQuery != "{query}") {
             viewModel.updateQuery(initialQuery)
             viewModel.analyze()
         }
