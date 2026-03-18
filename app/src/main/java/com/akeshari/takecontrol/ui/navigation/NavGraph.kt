@@ -22,6 +22,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.akeshari.takecontrol.ui.activity.ActivityScreen
+import com.akeshari.takecontrol.ui.alternatives.AlternativesScreen
 import com.akeshari.takecontrol.ui.appdetail.AppDetailScreen
 import com.akeshari.takecontrol.ui.dashboard.DashboardScreen
 import com.akeshari.takecontrol.ui.matrix.PermissionMatrixScreen
@@ -37,6 +38,7 @@ object Routes {
     const val APP_DETAIL = "app_detail/{packageName}"
     const val PRE_INSTALL = "pre_install"
     const val ACTIVITY_MONITOR = "activity_monitor"
+    const val ALTERNATIVES = "alternatives"
     const val THREATS = "threats?company={company}"
     const val THREATS_BASE = "threats"
 
@@ -208,6 +210,10 @@ fun TakeControlNavHost() {
                         navController.navigate(Routes.appDetail(packageName))
                     }
                 )
+            }
+
+            composable(Routes.ALTERNATIVES) {
+                AlternativesScreen(onBack = { navController.popBackStack() })
             }
 
             composable(Routes.PRE_INSTALL) {

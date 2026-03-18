@@ -244,13 +244,15 @@ private fun SubScoreInline(label: String, score: Int) {
 
 @Composable
 private fun QuickActionsRow(onNavigate: (String) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        QuickAction(Icons.Outlined.Timeline, "Activity", Modifier.weight(1f)) { onNavigate(Routes.ACTIVITY_MONITOR) }
-        QuickAction(Icons.Outlined.Search, "Lookup", Modifier.weight(1f)) { onNavigate(Routes.PRE_INSTALL) }
-        QuickAction(Icons.Outlined.Info, "About", Modifier.weight(1f)) { onNavigate(Routes.SETTINGS) }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            QuickAction(Icons.Outlined.Timeline, "Activity", Modifier.weight(1f)) { onNavigate(Routes.ACTIVITY_MONITOR) }
+            QuickAction(Icons.Outlined.SwapHoriz, "Privacy Picks", Modifier.weight(1f)) { onNavigate(Routes.ALTERNATIVES) }
+        }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            QuickAction(Icons.Outlined.Search, "App Lookup", Modifier.weight(1f)) { onNavigate(Routes.PRE_INSTALL) }
+            QuickAction(Icons.Outlined.Info, "About", Modifier.weight(1f)) { onNavigate(Routes.SETTINGS) }
+        }
     }
 }
 
