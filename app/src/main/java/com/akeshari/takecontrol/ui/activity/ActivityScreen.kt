@@ -15,7 +15,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -42,7 +41,6 @@ import com.akeshari.takecontrol.ui.theme.*
 fun ActivityScreen(
     onBack: () -> Unit,
     onAppClick: (String) -> Unit,
-    onViewMatrix: () -> Unit = {},
     viewModel: ActivityViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -79,48 +77,7 @@ fun ActivityScreen(
                     }
                 }
             } else {
-                // 1. Permission Budget
-                SectionCard(
-                    title = "Permission Budget",
-                    subtitle = "Apps with sensitive permissions (Location, Camera, Mic, Contacts, SMS, Phone)"
-                ) {
-                    val total = state.totalAppsWithAccess
-                    val used = state.appsUsedThisWeek
-                    val unused = state.appsNotUsedWithPerms
-                    if (total > 0) {
-                        Row(Modifier.fillMaxWidth().height(28.dp).clip(RoundedCornerShape(6.dp))) {
-                            if (used > 0) {
-                                Box(Modifier.weight(used.toFloat()).fillMaxHeight().background(RiskSafe), contentAlignment = Alignment.Center) {
-                                    Text("$used used", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                }
-                            }
-                            if (unused > 0) {
-                                Box(Modifier.weight(unused.toFloat()).fillMaxHeight().background(RiskHigh), contentAlignment = Alignment.Center) {
-                                    Text("$unused unused", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                }
-                            }
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        Text("$total apps have sensitive access. $used used this week, $unused not.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = onViewMatrix,
-                            modifier = Modifier.fillMaxWidth().height(36.dp),
-                            shape = RoundedCornerShape(6.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp)
-                        ) {
-                            Text("View in Permission Matrix", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                            Spacer(Modifier.width(4.dp))
-                            Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, modifier = Modifier.size(14.dp))
-                        }
-                    } else {
-                        Text("No apps with sensitive permissions found.", style = MaterialTheme.typography.bodySmall, color = RiskSafe)
-                    }
-                }
-
-                Spacer(Modifier.height(10.dp))
-
-                // 2. Zombie Apps
+                // 1. Zombie Apps
                 if (state.zombieApps.isNotEmpty()) {
                     SectionCard(
                         title = "Zombie Apps (${state.zombieApps.size})",
@@ -136,7 +93,7 @@ fun ActivityScreen(
                     Spacer(Modifier.height(10.dp))
                 }
 
-                // 3. Usage vs Exposure
+                // 2. Usage vs Exposure
                 if (state.overExposed.isNotEmpty()) {
                     SectionCard(
                         title = "Usage vs Exposure (${state.overExposed.size})",

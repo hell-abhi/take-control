@@ -16,11 +16,8 @@ import javax.inject.Inject
 data class ActivityState(
     val isLoading: Boolean = true,
     val hasPermission: Boolean = false,
-    val zombieApps: List<AppUsageInfo> = emptyList(),       // 30+ days unused with permissions
-    val overExposed: List<AppUsageInfo> = emptyList(),       // high exposure ratio
-    val totalAppsWithAccess: Int = 0,
-    val appsUsedThisWeek: Int = 0,
-    val appsNotUsedWithPerms: Int = 0
+    val zombieApps: List<AppUsageInfo> = emptyList(),
+    val overExposed: List<AppUsageInfo> = emptyList()
 )
 
 @HiltViewModel
@@ -63,18 +60,11 @@ class ActivityViewModel @Inject constructor(
 
             // Budget: only count apps with dangerous permissions (not tracker-only)
             val withDangerousPerms = allUsage.filter { it.dangerousPermissions.isNotEmpty() }
-            val totalWithAccess = withDangerousPerms.size
-            val usedThisWeek = withDangerousPerms.count { it.weeklyMinutes > 0 }
-            val notUsedWithPerms = totalWithAccess - usedThisWeek
-
             _state.value = ActivityState(
                 isLoading = false,
                 hasPermission = true,
                 zombieApps = zombies,
-                overExposed = overExposed,
-                totalAppsWithAccess = totalWithAccess,
-                appsUsedThisWeek = usedThisWeek,
-                appsNotUsedWithPerms = notUsedWithPerms
+                overExposed = overExposed
             )
         }
     }
