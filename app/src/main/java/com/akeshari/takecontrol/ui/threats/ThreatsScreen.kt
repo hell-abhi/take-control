@@ -1,5 +1,6 @@
 package com.akeshari.takecontrol.ui.threats
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -33,10 +34,12 @@ import com.akeshari.takecontrol.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThreatsScreen(
+    scrollToCompany: String? = null,
     onAppClick: (String) -> Unit,
     viewModel: ThreatsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val scrollState = rememberScrollState()
 
     Scaffold(
         topBar = {
@@ -74,11 +77,19 @@ fun ThreatsScreen(
             return@Scaffold
         }
 
+        // Auto-scroll to Company Reach when navigated with a company param
+        LaunchedEffect(scrollToCompany, state.isLoading) {
+            if (scrollToCompany != null && !state.isLoading && state.companyExposures.isNotEmpty()) {
+                // Scroll far enough to show the Company Reach section
+                scrollState.animateScrollTo(scrollState.maxValue)
+            }
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(horizontal = 20.dp)
         ) {
             Spacer(Modifier.height(4.dp))
@@ -149,7 +160,11 @@ fun ThreatsScreen(
             )
             Spacer(Modifier.height(12.dp))
             state.companyExposures.forEach { exposure ->
-                CompanyExposureCard(exposure, onAppClick)
+                CompanyExposureCard(
+                    exposure = exposure,
+                    onAppClick = onAppClick,
+                    initiallyExpanded = exposure.companyName == scrollToCompany
+                )
                 Spacer(Modifier.height(10.dp))
             }
 
@@ -513,7 +528,7 @@ private fun ThreatHeatmap(
 // ── Company Exposure Card ───────────────────────────────────────────────────
 
 @Composable
-private fun CompanyExposureCard(exposure: CompanyExposure, onAppClick: (String) -> Unit) {
+private fun CompanyExposureCard(exposure: CompanyExposure, onAppClick: (String) -> Unit, initiallyExpanded: Boolean = false) {
     val reachColor = when {
         exposure.reachPercentage > 40 -> RiskCritical
         exposure.reachPercentage > 20 -> RiskHigh
@@ -521,7 +536,7 @@ private fun CompanyExposureCard(exposure: CompanyExposure, onAppClick: (String) 
         else -> RiskLow
     }
 
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(initiallyExpanded) }
 
     Card(
         onClick = { expanded = !expanded },

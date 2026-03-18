@@ -46,7 +46,7 @@ import java.util.Locale
 fun DashboardScreen(
     onViewAllApps: () -> Unit,
     onFixGroup: (String) -> Unit,
-    onNavigateToRadar: () -> Unit,
+    onNavigateToRadar: (String?) -> Unit,
     onAppClick: (String) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
@@ -109,7 +109,7 @@ fun DashboardScreen(
 
                 // 4. Tracking Overview
                 if (state.companyOverviews.isNotEmpty()) {
-                    SectionHeader("Tracking Overview", "${state.totalTrackers} trackers from ${state.companyOverviews.size} companies", onNavigateToRadar)
+                    SectionHeader("Tracking Overview", "${state.totalTrackers} trackers from ${state.companyOverviews.size} companies") { onNavigateToRadar(null) }
                     Spacer(Modifier.height(10.dp))
                     CompanyOverviewGrid(state.companyOverviews, onNavigateToRadar)
                     Spacer(Modifier.height(24.dp))
@@ -417,7 +417,7 @@ private fun PermissionGroupGrid(groupCounts: Map<PermissionGroup, Int>, onGroupC
 // ── Tracking Overview ───────────────────────────────────────────────────────
 
 @Composable
-private fun CompanyOverviewGrid(companies: List<CompanyOverview>, onNavigateToRadar: () -> Unit) {
+private fun CompanyOverviewGrid(companies: List<CompanyOverview>, onNavigateToRadar: (String?) -> Unit) {
     LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         items(companies) { company ->
             val color = when {
@@ -431,7 +431,7 @@ private fun CompanyOverviewGrid(companies: List<CompanyOverview>, onNavigateToRa
                 label = company.companyName,
                 count = "${company.appCount} apps",
                 color = color,
-                onClick = onNavigateToRadar
+                onClick = { onNavigateToRadar(company.companyName) }
             )
         }
     }

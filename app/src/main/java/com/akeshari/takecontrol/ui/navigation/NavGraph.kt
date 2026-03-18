@@ -39,7 +39,12 @@ object Routes {
     const val SETTINGS = "settings"
     const val APP_DETAIL = "app_detail/{packageName}"
     const val PRE_INSTALL = "pre_install"
-    const val THREATS = "threats"
+    const val THREATS = "threats?company={company}"
+    const val THREATS_BASE = "threats"
+
+    fun threats(company: String? = null): String {
+        return if (company != null) "threats?company=$company" else "threats"
+    }
 
     fun appDetail(packageName: String) = "app_detail/$packageName"
     fun permissionMatrix(group: String? = null): String {
@@ -56,7 +61,7 @@ data class BottomNavItem(
 
 val bottomNavItems = listOf(
     BottomNavItem(Routes.DASHBOARD, "Score", Icons.Filled.Shield, Icons.Outlined.Shield),
-    BottomNavItem(Routes.THREATS, "Radar", Icons.Filled.Visibility, Icons.Outlined.Visibility),
+    BottomNavItem(Routes.THREATS_BASE, "Radar", Icons.Filled.Visibility, Icons.Outlined.Visibility),
     BottomNavItem(Routes.PERMISSION_MATRIX_BASE, "Apps", Icons.Filled.GridView, Icons.Outlined.GridView),
     BottomNavItem(Routes.PRE_INSTALL, "Lookup", Icons.Filled.Search, Icons.Outlined.Search),
     BottomNavItem(Routes.SETTINGS, "About", Icons.Filled.Settings, Icons.Outlined.Settings)
@@ -73,7 +78,7 @@ fun TakeControlNavHost() {
         currentRoute.startsWith(Routes.PERMISSION_MATRIX_BASE) ||
         currentRoute == Routes.SETTINGS ||
         currentRoute == Routes.PRE_INSTALL ||
-        currentRoute == Routes.THREATS
+        currentRoute?.startsWith(Routes.THREATS_BASE) == true
     )
 
     Scaffold(
@@ -88,7 +93,7 @@ fun TakeControlNavHost() {
                             Routes.PERMISSION_MATRIX_BASE -> currentRoute?.startsWith(Routes.PERMISSION_MATRIX_BASE) == true
                             Routes.SETTINGS -> currentRoute == Routes.SETTINGS
                             Routes.PRE_INSTALL -> currentRoute == Routes.PRE_INSTALL
-                            Routes.THREATS -> currentRoute == Routes.THREATS
+                            Routes.THREATS_BASE -> currentRoute?.startsWith(Routes.THREATS_BASE) == true
                             else -> false
                         }
                         NavigationBarItem(
@@ -146,13 +151,12 @@ fun TakeControlNavHost() {
                             launchSingleTop = true
                         }
                     },
-                    onNavigateToRadar = {
-                        navController.navigate(Routes.THREATS) {
+                    onNavigateToRadar = { company ->
+                        navController.navigate(Routes.threats(company)) {
                             popUpTo(navController.graph.findStartDestination().id) {
                                 saveState = true
                             }
                             launchSingleTop = true
-                            restoreState = true
                         }
                     },
                     onAppClick = { packageName ->
@@ -180,8 +184,19 @@ fun TakeControlNavHost() {
                 )
             }
 
-            composable(Routes.THREATS) {
+            composable(
+                route = Routes.THREATS,
+                arguments = listOf(
+                    navArgument("company") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val company = backStackEntry.arguments?.getString("company")
                 ThreatsScreen(
+                    scrollToCompany = company,
                     onAppClick = { packageName ->
                         navController.navigate(Routes.appDetail(packageName))
                     }
