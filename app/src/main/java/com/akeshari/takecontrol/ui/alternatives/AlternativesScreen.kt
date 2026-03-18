@@ -1,7 +1,12 @@
 package com.akeshari.takecontrol.ui.alternatives
 
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.drawable.Drawable
+import android.net.Uri
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -10,8 +15,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.*
@@ -21,15 +24,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akeshari.takecontrol.data.model.PrivacyAlternative
 import com.akeshari.takecontrol.data.model.PrivacyAlternativesData
 import com.akeshari.takecontrol.ui.theme.*
+import com.google.accompanist.drawablepainter.rememberDrawablePainter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +71,48 @@ fun AlternativesScreen(
     }
 }
 
-// ── Swipe View (Bumble-style cards) ─────────────────────────────────────────
+// ── App Icon Helper ─────────────────────────────────────────────────────────
+
+@Composable
+private fun AppIcon(packageName: String, appName: String, color: Color, size: Int = 40) {
+    val context = LocalContext.current
+    val icon = remember(packageName) { getAppIcon(context, packageName) }
+
+    if (icon != null) {
+        Image(
+            painter = rememberDrawablePainter(icon),
+            contentDescription = appName,
+            modifier = Modifier.size(size.dp).clip(RoundedCornerShape(10.dp))
+        )
+    } else {
+        // Fallback: styled initial
+        Box(
+            modifier = Modifier
+                .size(size.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(color.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                appName.first().toString(),
+                fontFamily = PressStart2P,
+                fontSize = (size / 3).sp,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+        }
+    }
+}
+
+private fun getAppIcon(context: Context, packageName: String): Drawable? {
+    return try {
+        context.packageManager.getApplicationIcon(packageName)
+    } catch (_: PackageManager.NameNotFoundException) {
+        null
+    }
+}
+
+// ── Swipe View ──────────────────────────────────────────────────────────────
 
 @Composable
 private fun SwipeView(alternatives: List<PrivacyAlternative>, modifier: Modifier) {
@@ -78,16 +123,9 @@ private fun SwipeView(alternatives: List<PrivacyAlternative>, modifier: Modifier
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(8.dp))
-
-        Text(
-            "Swipe to discover privacy-friendly apps",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
+        Text("Swipe to discover privacy-friendly apps", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(12.dp))
 
-        // Pager
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -97,12 +135,8 @@ private fun SwipeView(alternatives: List<PrivacyAlternative>, modifier: Modifier
             SwipeCard(alternatives[page])
         }
 
-        // Dots indicator
         Spacer(Modifier.height(12.dp))
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
             repeat(alternatives.size) { index ->
                 Box(
                     modifier = Modifier
@@ -116,14 +150,8 @@ private fun SwipeView(alternatives: List<PrivacyAlternative>, modifier: Modifier
                 )
             }
         }
-
-        // Counter
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "${pagerState.currentPage + 1} / ${alternatives.size}",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Spacer(Modifier.height(4.dp))
+        Text("${pagerState.currentPage + 1} / ${alternatives.size}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(16.dp))
     }
 }
@@ -155,11 +183,11 @@ private fun SwipeCard(alt: PrivacyAlternative) {
 
             Spacer(Modifier.height(16.dp))
 
-            // "Instead of" section with app initial
+            // "Instead of" section
             Text("Instead of", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                AppInitialBadge(alt.mainstream, RiskHigh)
+                AppIcon(alt.mainstreamPackage, alt.mainstream, RiskHigh)
                 Spacer(Modifier.width(12.dp))
                 Text(alt.mainstream, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = RiskHigh)
             }
@@ -170,11 +198,11 @@ private fun SwipeCard(alt: PrivacyAlternative) {
             HorizontalDivider(color = MaterialTheme.colorScheme.surface)
             Spacer(Modifier.height(18.dp))
 
-            // "Try" section with app initial
+            // "Try" section
             Text("Try", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                AppInitialBadge(alt.alternative, RiskSafe)
+                AppIcon(alt.alternativePackage, alt.alternative, RiskSafe)
                 Spacer(Modifier.width(12.dp))
                 Text(alt.alternative, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = RiskSafe)
             }
@@ -182,8 +210,6 @@ private fun SwipeCard(alt: PrivacyAlternative) {
             Text(alt.whyBetter, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 18.sp)
 
             Spacer(Modifier.height(14.dp))
-
-            // Key features
             alt.keyFeatures.forEach { feature ->
                 Row(modifier = Modifier.padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Outlined.CheckCircle, null, tint = RiskSafe, modifier = Modifier.size(16.dp))
@@ -193,13 +219,9 @@ private fun SwipeCard(alt: PrivacyAlternative) {
             }
 
             Spacer(Modifier.height(16.dp))
-
-            // Get on Play Store button
             OutlinedButton(
                 onClick = {
-                    context.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${alt.alternativePackage}"))
-                    )
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${alt.alternativePackage}")))
                 },
                 modifier = Modifier.fillMaxWidth().height(42.dp),
                 shape = RoundedCornerShape(8.dp)
@@ -212,98 +234,122 @@ private fun SwipeCard(alt: PrivacyAlternative) {
     }
 }
 
-@Composable
-private fun AppInitialBadge(name: String, color: Color) {
-    Box(
-        modifier = Modifier
-            .size(40.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(color.copy(alpha = 0.15f)),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            name.first().toString(),
-            fontFamily = PressStart2P,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-    }
-}
-
-// ── List View (table) ───────────────────────────────────────────────────────
+// ── List View (card-based) ──────────────────────────────────────────────────
 
 @Composable
 private fun ListView(alternatives: List<PrivacyAlternative>, modifier: Modifier) {
+    val context = LocalContext.current
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Spacer(Modifier.height(4.dp))
+        Text(
+            "All privacy alternatives",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(4.dp))
 
-        // Scrollable table
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-        ) {
-            // Header row
-            Row(
-                modifier = Modifier
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(vertical = 10.dp)
+        alternatives.forEach { alt ->
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                TableCell("What For", 100.dp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                TableCell("You're Using", 120.dp, fontWeight = FontWeight.Bold, color = RiskHigh)
-                TableCell("Switch To", 120.dp, fontWeight = FontWeight.Bold, color = RiskSafe)
-                TableCell("Why It's Better", 200.dp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-            }
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                    // Category
+                    Text(alt.category, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.height(10.dp))
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.surface)
+                    // Mainstream → Alternative
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Mainstream app
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            AppIcon(alt.mainstreamPackage, alt.mainstream, RiskHigh, size = 44)
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                alt.mainstream,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = RiskHigh,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center
+                            )
+                        }
 
-            // Data rows
-            alternatives.forEachIndexed { index, alt ->
-                Row(
-                    modifier = Modifier
-                        .background(
-                            if (index % 2 == 0) Color.Transparent
-                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                        )
-                        .padding(vertical = 10.dp)
-                ) {
-                    TableCell(alt.category, 100.dp)
-                    TableCell(alt.mainstream, 120.dp, color = RiskHigh)
-                    TableCell(alt.alternative, 120.dp, color = RiskSafe, fontWeight = FontWeight.SemiBold)
-                    TableCell(alt.whyBetter, 200.dp, maxLines = 3)
-                }
-                if (index < alternatives.size - 1) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        // Arrow
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Outlined.ArrowForward,
+                                null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        // Alternative app
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            AppIcon(alt.alternativePackage, alt.alternative, RiskSafe, size = 44)
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                alt.alternative.split("(").first().trim(),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = RiskSafe,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+
+                    // One-line reason
+                    Text(
+                        alt.whyBetter.split(".").first() + ".",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+
+                    // Get button
+                    OutlinedButton(
+                        onClick = {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${alt.alternativePackage}")))
+                        },
+                        modifier = Modifier.fillMaxWidth().height(36.dp),
+                        shape = RoundedCornerShape(6.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp)
+                    ) {
+                        Icon(Icons.Outlined.OpenInNew, null, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Get ${alt.alternative.split(" ").first()}", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
 
-        Spacer(Modifier.height(20.dp))
-    }
-}
-
-@Composable
-private fun TableCell(
-    text: String,
-    width: androidx.compose.ui.unit.Dp,
-    fontWeight: FontWeight = FontWeight.Normal,
-    color: Color = MaterialTheme.colorScheme.onSurface,
-    maxLines: Int = 2
-) {
-    Box(modifier = Modifier.width(width).padding(horizontal = 12.dp)) {
-        Text(
-            text,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = fontWeight,
-            color = color,
-            maxLines = maxLines,
-            overflow = TextOverflow.Ellipsis,
-            lineHeight = 16.sp
-        )
+        Spacer(Modifier.height(16.dp))
     }
 }
