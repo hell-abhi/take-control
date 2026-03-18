@@ -82,17 +82,17 @@ object PrivacyAlternativesData {
             category = "Keyboard",
             mainstream = "Gboard", mainstreamPackage = "com.google.android.inputmethod.latin",
             mainstreamIssue = "Made by Google. Can send everything you type to Google servers for 'prediction improvement'. Has full internet access.",
-            alternative = "HeliBoard", alternativePackage = "helium314.keyboard", alternativeIconUrl = "https://raw.githubusercontent.com/Helium314/HeliBoard/main/images/ic_launcher-playstore.png",
-            whyBetter = "Open source keyboard with no internet permission at all. Nothing you type can ever leave your device. Supports gestures and autocorrect.",
-            keyFeatures = listOf("Zero internet access", "Nothing leaves your device", "Open source", "Gesture typing supported")
+            alternative = "Simple Keyboard", alternativePackage = "com.simplemobiletools.keyboard", alternativeIconUrl = "https://play-lh.googleusercontent.com/siErq80gKOfcPXenEKM5oR04B7dkUawpLE4N2HoHsin7WU-aEBnkh0pw8rADMjMbk7KP=w240",
+            whyBetter = "Lightweight keyboard with no internet permission. Nothing you type can ever leave your device. No tracking, no data collection.",
+            keyFeatures = listOf("Zero internet access", "Nothing leaves your device", "Open source", "Lightweight and fast")
         ),
         PrivacyAlternative(
-            category = "Video",
-            mainstream = "YouTube", mainstreamPackage = "com.google.android.youtube",
-            mainstreamIssue = "Owned by Google. Tracks every video you watch to build a detailed interest profile. Uses data for ad targeting. Algorithmic recommendations.",
-            alternative = "NewPipe", alternativePackage = "org.schabi.newpipe", alternativeIconUrl = "https://newpipe.net/img/logo.svg",
-            whyBetter = "Open source YouTube frontend. No ads, no tracking, no Google account needed. Background play and downloads included.",
-            keyFeatures = listOf("No ads whatsoever", "No Google account needed", "No watch history tracking", "Background play & downloads")
+            category = "Browser (Alt)",
+            mainstream = "Samsung Internet", mainstreamPackage = "com.sec.android.app.sbrowser",
+            mainstreamIssue = "Samsung's default browser tracks browsing activity. Sends data to Samsung and third-party analytics. Pre-installed and hard to remove.",
+            alternative = "Firefox", alternativePackage = "org.mozilla.firefox", alternativeIconUrl = "https://play-lh.googleusercontent.com/zqsuwFUBwKRcGOSBinKQCL3JgfvOW49vJphq0ZF32aDgfqmuDyl-fEpx4Lxm4pRr7A=w240",
+            whyBetter = "Open source browser with Enhanced Tracking Protection built-in. Blocks third-party cookies and trackers by default. Run by Mozilla, a non-profit.",
+            keyFeatures = listOf("Enhanced Tracking Protection", "Open source, non-profit", "Cross-platform sync with encryption", "Extensive add-on support")
         ),
         PrivacyAlternative(
             category = "Notes",

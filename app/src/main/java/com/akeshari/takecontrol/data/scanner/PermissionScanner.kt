@@ -96,8 +96,9 @@ class PermissionScanner @Inject constructor(
         return when {
             // Communication
             pkg.contains("whatsapp") || pkg.contains("telegram") || pkg.contains("signal") ||
-            pkg.contains("messenger") || pkg.contains("viber") || pkg.contains("discord") ||
-            pkg.contains("slack") || pkg.contains("skype") -> AppCategory.COMMUNICATION
+            pkg.contains("securesms") || pkg.contains("messenger") || pkg.contains("viber") ||
+            pkg.contains("discord") || pkg.contains("slack") || pkg.contains("skype") ||
+            pkg.contains("threema") -> AppCategory.COMMUNICATION
 
             // Social media
             pkg.contains("instagram") || pkg.contains("facebook") || pkg.contains("twitter") ||
@@ -128,17 +129,22 @@ class PermissionScanner @Inject constructor(
             // Entertainment
             pkg.contains("youtube") || pkg.contains("netflix") || pkg.contains("spotify") ||
             pkg.contains("music") || pkg.contains("video") || pkg.contains("player") ||
-            pkg.contains("hotstar") || pkg.contains("prime") -> AppCategory.ENTERTAINMENT
+            pkg.contains("hotstar") || pkg.contains("prime") || pkg.contains("libretube") -> AppCategory.ENTERTAINMENT
 
             // Productivity
             pkg.contains("office") || pkg.contains("docs") || pkg.contains("sheets") ||
             pkg.contains("drive") || pkg.contains("notion") || pkg.contains("calendar") ||
-            pkg.contains("notes") || pkg.contains("todo") -> AppCategory.PRODUCTIVITY
+            pkg.contains("notes") || pkg.contains("todo") || pkg.contains("nextcloud") ||
+            pkg.contains("standardnotes") || pkg.contains("bitwarden") -> AppCategory.PRODUCTIVITY
 
-            // Utilities
+            // Utilities — browsers, search, maps, tools
             pkg.contains("calculator") || pkg.contains("clock") || pkg.contains("weather") ||
             pkg.contains("flashlight") || pkg.contains("compass") || pkg.contains("files") ||
-            pkg.contains("cleaner") || pkg.contains("launcher") -> AppCategory.UTILITIES
+            pkg.contains("cleaner") || pkg.contains("launcher") ||
+            pkg.contains("browser") || pkg.contains("brave") || pkg.contains("firefox") ||
+            pkg.contains("chrome") || pkg.contains("duckduckgo") ||
+            pkg.contains("osmand") || pkg.contains("keyboard") || pkg.contains("aegis") ||
+            pkg.contains("authenticator") -> AppCategory.UTILITIES
 
             else -> AppCategory.OTHER
         }
