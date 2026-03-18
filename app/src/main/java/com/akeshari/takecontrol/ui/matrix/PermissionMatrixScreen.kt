@@ -152,10 +152,22 @@ fun PermissionMatrixScreen(
 
             // Filters
             AnimatedVisibility(visible = showFilters) {
-                FilterRow(
-                    selectedFilter = state.filter,
-                    onFilterSelected = { viewModel.setFilter(it) }
-                )
+                Column {
+                    FilterRow(
+                        selectedFilter = state.filter,
+                        onFilterSelected = { viewModel.setFilter(it) }
+                    )
+                    // Show note when a group filter is active (implicitly user-only)
+                    if (state.filter.group != null) {
+                        Text(
+                            "Showing installed apps with ${state.filter.label} access",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+                        )
+                    }
+                }
             }
 
             // Column headers (tappable)
