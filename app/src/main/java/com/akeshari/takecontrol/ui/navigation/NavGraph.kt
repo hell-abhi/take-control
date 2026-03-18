@@ -21,6 +21,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.akeshari.takecontrol.ui.activity.ActivityScreen
 import com.akeshari.takecontrol.ui.appdetail.AppDetailScreen
 import com.akeshari.takecontrol.ui.dashboard.DashboardScreen
 import com.akeshari.takecontrol.ui.matrix.PermissionMatrixScreen
@@ -35,6 +36,7 @@ object Routes {
     const val SETTINGS = "settings"
     const val APP_DETAIL = "app_detail/{packageName}"
     const val PRE_INSTALL = "pre_install"
+    const val ACTIVITY_MONITOR = "activity_monitor"
     const val THREATS = "threats?company={company}"
     const val THREATS_BASE = "threats"
 
@@ -199,6 +201,15 @@ fun TakeControlNavHost() {
             }
 
             // Secondary screens (accessible from Home's Tools section)
+            composable(Routes.ACTIVITY_MONITOR) {
+                ActivityScreen(
+                    onBack = { navController.popBackStack() },
+                    onAppClick = { packageName ->
+                        navController.navigate(Routes.appDetail(packageName))
+                    }
+                )
+            }
+
             composable(Routes.PRE_INSTALL) {
                 PreInstallCheckScreen(onBack = { navController.popBackStack() })
             }

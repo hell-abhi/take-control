@@ -162,6 +162,7 @@ private data class ToolItem(
 @Composable
 private fun ToolsGrid(onNavigate: (String) -> Unit) {
     val tools = listOf(
+        ToolItem(Icons.Outlined.Timeline, "Activity Monitor", "Zombie apps, background access, night crawlers", Routes.ACTIVITY_MONITOR),
         ToolItem(Icons.Outlined.Search, "App Lookup", "Check any app before installing", Routes.PRE_INSTALL),
         ToolItem(Icons.Outlined.Info, "About", "How the app and scoring works", Routes.SETTINGS)
     )

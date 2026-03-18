@@ -6,8 +6,12 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
 
-    <!-- Internet for pre-install check (Exodus Privacy API) -->
+    <!-- Internet for pre-install check (Play Store data) -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Usage stats for Activity Monitor (zombie detection, access timeline) -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
 
     <application
         android:name=".TakeControlApp"
