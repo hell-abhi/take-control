@@ -422,6 +422,12 @@ private fun StatItem(value: String, label: String) {
 @Composable
 private fun PermissionGroupGrid(groupCounts: Map<PermissionGroup, Int>, onGroupClick: (String) -> Unit) {
     val groups = PermissionGroup.entries.filter { groupCounts.containsKey(it) }
+    // Groups that have columns in the matrix
+    val matrixGroups = setOf(
+        PermissionGroup.LOCATION, PermissionGroup.CAMERA, PermissionGroup.MICROPHONE,
+        PermissionGroup.CONTACTS, PermissionGroup.STORAGE, PermissionGroup.SMS,
+        PermissionGroup.PHONE, PermissionGroup.SENSORS
+    )
 
     LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         items(groups) { group ->
@@ -435,7 +441,7 @@ private fun PermissionGroupGrid(groupCounts: Map<PermissionGroup, Int>, onGroupC
                     RiskLevel.MEDIUM -> RiskMedium
                     RiskLevel.LOW -> RiskLow
                 },
-                onClick = { onGroupClick(group.name) }
+                onClick = if (group in matrixGroups) {{ onGroupClick(group.name) }} else null
             )
         }
     }
@@ -447,10 +453,11 @@ private fun PermissionGroupChip(
     label: String,
     count: Int,
     riskColor: Color,
-    onClick: () -> Unit
+    onClick: (() -> Unit)?
 ) {
     Card(
-        onClick = onClick,
+        onClick = onClick ?: {},
+        enabled = onClick != null,
         shape = RoundedCornerShape(6.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant

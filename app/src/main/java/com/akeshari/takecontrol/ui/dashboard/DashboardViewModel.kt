@@ -57,10 +57,8 @@ class DashboardViewModel @Inject constructor(
                 val privacyScore = PrivacyScoreCalculator.calculate(userApps)
 
                 // Permission group counts: unique APPS per group (not permission instances)
-                // Exclude NETWORK and OTHER since they're not in the matrix
                 val groupCounts = mutableMapOf<PermissionGroup, Int>()
                 for (group in PermissionGroup.entries) {
-                    if (group == PermissionGroup.NETWORK || group == PermissionGroup.OTHER) continue
                     val count = userApps.count { app ->
                         app.permissions.any { it.group == group && it.isGranted }
                     }

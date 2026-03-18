@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -102,6 +104,8 @@ fun AppDetailScreen(
                     isSystemApp = app.isSystemApp
                 )
             }
+
+            // (uninstall is inside ActionPanel)
 
             // Trackers (Feature 4)
             if (app.trackers.isNotEmpty()) {
@@ -303,21 +307,11 @@ private fun ActionPanel(packageName: String, isSystemApp: Boolean) {
                 if (!isSystemApp) {
                     Button(
                         onClick = {
-                            // Direct, simple approach — no tryStartActivity wrapper
-                            try {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_DELETE).apply {
-                                        data = Uri.parse("package:$packageName")
-                                    }
-                                )
-                            } catch (_: Exception) {
-                                // Absolute fallback: open app info page
-                                context.startActivity(
-                                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                        data = Uri.fromParts("package", packageName, null)
-                                    }
-                                )
+                            val intent = Intent(Intent.ACTION_DELETE).apply {
+                                data = Uri.parse("package:$packageName")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                             }
+                            context.startActivity(intent)
                         },
                         modifier = Modifier.weight(1f).height(44.dp),
                         shape = RoundedCornerShape(6.dp),
