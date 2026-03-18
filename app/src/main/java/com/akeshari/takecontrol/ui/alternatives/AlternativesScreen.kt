@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import com.akeshari.takecontrol.data.model.PrivacyAlternative
 import com.akeshari.takecontrol.data.model.PrivacyAlternativesData
 import com.akeshari.takecontrol.ui.theme.*
+import coil.compose.AsyncImage
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,18 +76,26 @@ fun AlternativesScreen(
 // ── App Icon Helper ─────────────────────────────────────────────────────────
 
 @Composable
-private fun AppIcon(packageName: String, appName: String, color: Color, size: Int = 40) {
+private fun AppIcon(packageName: String, appName: String, color: Color, size: Int = 40, iconUrl: String = "") {
     val context = LocalContext.current
-    val icon = remember(packageName) { getAppIcon(context, packageName) }
+    val localIcon = remember(packageName) { getAppIcon(context, packageName) }
 
-    if (icon != null) {
+    if (localIcon != null) {
+        // Installed app — use local icon
         Image(
-            painter = rememberDrawablePainter(icon),
+            painter = rememberDrawablePainter(localIcon),
+            contentDescription = appName,
+            modifier = Modifier.size(size.dp).clip(RoundedCornerShape(10.dp))
+        )
+    } else if (iconUrl.isNotEmpty()) {
+        // Not installed — load from network
+        AsyncImage(
+            model = iconUrl,
             contentDescription = appName,
             modifier = Modifier.size(size.dp).clip(RoundedCornerShape(10.dp))
         )
     } else {
-        // Fallback: styled initial
+        // No URL — styled initial
         Box(
             modifier = Modifier
                 .size(size.dp)
@@ -94,13 +103,7 @@ private fun AppIcon(packageName: String, appName: String, color: Color, size: In
                 .background(color.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                appName.first().toString(),
-                fontFamily = PressStart2P,
-                fontSize = (size / 3).sp,
-                fontWeight = FontWeight.Bold,
-                color = color
-            )
+            Text(appName.first().toString(), fontFamily = PressStart2P, fontSize = (size / 3).sp, fontWeight = FontWeight.Bold, color = color)
         }
     }
 }
@@ -203,7 +206,7 @@ private fun SwipeCard(alt: PrivacyAlternative, onLookup: (String) -> Unit) {
             Text("Try", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                AppIcon(alt.alternativePackage, alt.alternative, RiskSafe)
+                AppIcon(alt.alternativePackage, alt.alternative, RiskSafe, iconUrl = alt.alternativeIconUrl)
                 Spacer(Modifier.width(12.dp))
                 Text(alt.alternative, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = RiskSafe)
             }
@@ -320,7 +323,7 @@ private fun ListView(alternatives: List<PrivacyAlternative>, onLookup: (String) 
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.weight(1f)
                         ) {
-                            AppIcon(alt.alternativePackage, alt.alternative, RiskSafe, size = 44)
+                            AppIcon(alt.alternativePackage, alt.alternative, RiskSafe, size = 44, iconUrl = alt.alternativeIconUrl)
                             Spacer(Modifier.height(4.dp))
                             Text(
                                 alt.alternative.split("(").first().trim(),

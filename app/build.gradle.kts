@@ -62,6 +62,9 @@ dependencies {
     // Accompanist (drawable painter for app icons)
     implementation("com.google.accompanist:accompanist-drawablepainter:0.36.0")
 
+    // Coil (async image loading for network icons)
+    implementation("io.coil-kt:coil-compose:2.7.0")
+
     // Activity & Lifecycle
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
