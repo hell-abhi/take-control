@@ -311,11 +311,20 @@ private fun ActionPanel(packageName: String, isSystemApp: Boolean) {
                 if (!isSystemApp) {
                     Button(
                         onClick = {
-                            val intent = Intent(Intent.ACTION_DELETE).apply {
-                                data = Uri.parse("package:$packageName")
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            val launched = tryStartActivity(context,
+                                // Primary: standard uninstall dialog
+                                Intent(Intent.ACTION_DELETE, Uri.parse("package:$packageName")),
+                                // Fallback: explicit uninstall action
+                                Intent("android.intent.action.UNINSTALL_PACKAGE", Uri.parse("package:$packageName"))
+                            )
+                            if (!launched) {
+                                // Last resort: open app info where user can tap uninstall
+                                context.startActivity(
+                                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = Uri.fromParts("package", packageName, null)
+                                    }
+                                )
                             }
-                            context.startActivity(intent)
                         },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(6.dp),

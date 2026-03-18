@@ -108,14 +108,18 @@ class PermissionClassifier @Inject constructor() {
     }
 
     private fun formatLabel(permission: String): String {
-        return PERMISSION_LABELS[permission] ?: permission
-            .substringAfterLast(".")
-            .replace("_", " ")
-            .lowercase()
-            .replaceFirstChar { it.uppercase() }
+        // Check exact match first, then raw string map
+        return PERMISSION_LABELS[permission]
+            ?: RAW_PERMISSION_LABELS[permission]
+            ?: permission
+                .substringAfterLast(".")
+                .replace("_", " ")
+                .lowercase()
+                .replaceFirstChar { it.uppercase() }
     }
 
     companion object {
+        // Permissions accessible via Manifest.permission constants
         private val PERMISSION_LABELS = mapOf(
             // Location
             Manifest.permission.ACCESS_FINE_LOCATION to "Precise GPS location",
@@ -165,6 +169,92 @@ class PermissionClassifier @Inject constructor() {
             Manifest.permission.INTERNET to "Full internet access",
             Manifest.permission.ACCESS_NETWORK_STATE to "View network connections",
             Manifest.permission.ACCESS_WIFI_STATE to "View Wi-Fi connections"
+        )
+
+        // Permissions only available as raw strings (not in Manifest.permission)
+        private val RAW_PERMISSION_LABELS = mapOf(
+            // Biometrics & Security
+            "android.permission.USE_BIOMETRIC" to "Authenticate with fingerprint or face",
+            "android.permission.USE_FINGERPRINT" to "Authenticate with fingerprint",
+
+            // Notifications
+            "android.permission.POST_NOTIFICATIONS" to "Show notifications",
+
+            // Bluetooth
+            "android.permission.BLUETOOTH" to "Connect to Bluetooth devices",
+            "android.permission.BLUETOOTH_ADMIN" to "Manage Bluetooth settings",
+            "android.permission.BLUETOOTH_CONNECT" to "Connect to paired Bluetooth devices",
+            "android.permission.BLUETOOTH_SCAN" to "Find nearby Bluetooth devices",
+            "android.permission.BLUETOOTH_ADVERTISE" to "Broadcast to nearby Bluetooth devices",
+
+            // Wi-Fi
+            "android.permission.CHANGE_WIFI_STATE" to "Connect and disconnect Wi-Fi",
+            "android.permission.ACCESS_WIFI_STATE" to "View Wi-Fi connections",
+            "android.permission.NEARBY_WIFI_DEVICES" to "Find and connect to nearby Wi-Fi devices",
+
+            // NFC
+            "android.permission.NFC" to "Use NFC for payments and data transfer",
+
+            // Vibration & System
+            "android.permission.VIBRATE" to "Control vibration",
+            "android.permission.WAKE_LOCK" to "Prevent device from sleeping",
+            "android.permission.RECEIVE_BOOT_COMPLETED" to "Start automatically when device boots",
+            "android.permission.FOREGROUND_SERVICE" to "Run background tasks with notification",
+            "android.permission.FOREGROUND_SERVICE_LOCATION" to "Track location in background service",
+            "android.permission.FOREGROUND_SERVICE_CAMERA" to "Use camera in background service",
+            "android.permission.FOREGROUND_SERVICE_MICROPHONE" to "Use microphone in background service",
+            "android.permission.FOREGROUND_SERVICE_DATA_SYNC" to "Sync data in background",
+            "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" to "Play media in background",
+            "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" to "Request unrestricted battery usage",
+            "android.permission.SCHEDULE_EXACT_ALARM" to "Schedule exact-time alarms",
+            "android.permission.USE_EXACT_ALARM" to "Set precise alarms and reminders",
+
+            // System UI
+            "android.permission.SYSTEM_ALERT_WINDOW" to "Draw over other apps",
+            "android.permission.REQUEST_INSTALL_PACKAGES" to "Install other apps",
+            "android.permission.REQUEST_DELETE_PACKAGES" to "Request to uninstall other apps",
+
+            // Accounts
+            "android.permission.MANAGE_ACCOUNTS" to "Add or remove accounts",
+            "android.permission.AUTHENTICATE_ACCOUNTS" to "Act as account authenticator",
+            "android.permission.USE_CREDENTIALS" to "Use account credentials",
+
+            // Storage (newer)
+            "android.permission.MANAGE_EXTERNAL_STORAGE" to "Access all files on device",
+            "android.permission.ACCESS_MEDIA_LOCATION" to "Read location from your photos",
+            "android.permission.READ_MEDIA_VISUAL_USER_SELECTED" to "Access photos you select",
+
+            // Phone state (newer)
+            "android.permission.READ_PHONE_NUMBERS" to "Read your phone number",
+            "android.permission.ANSWER_PHONE_CALLS" to "Answer incoming calls automatically",
+            "android.permission.READ_BASIC_PHONE_STATE" to "Detect when you're on a call",
+            "android.permission.ACCEPT_HANDOVER" to "Continue a call from another app",
+
+            // Network
+            "android.permission.CHANGE_NETWORK_STATE" to "Change network connectivity",
+            "android.permission.ACCESS_LOCATION_EXTRA_COMMANDS" to "Access extra location provider commands",
+
+            // Misc
+            "android.permission.FLASHLIGHT" to "Control flashlight",
+            "android.permission.EXPAND_STATUS_BAR" to "Expand or collapse status bar",
+            "android.permission.REORDER_TASKS" to "Reorder running apps",
+            "android.permission.MODIFY_AUDIO_SETTINGS" to "Change audio and volume settings",
+            "android.permission.QUERY_ALL_PACKAGES" to "See all installed apps",
+            "android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" to "Update apps silently",
+            "android.permission.PACKAGE_USAGE_STATS" to "Monitor your app usage history",
+            "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" to "Read all your notifications",
+            "android.permission.BIND_ACCESSIBILITY_SERVICE" to "Observe and control screen content",
+
+            // Ad tracking
+            "android.permission.ACCESS_ADSERVICES_AD_ID" to "Read your advertising ID",
+            "android.permission.ACCESS_ADSERVICES_TOPICS" to "Access your ad interest topics",
+            "android.permission.ACCESS_ADSERVICES_ATTRIBUTION" to "Track ad attribution",
+            "android.permission.ACCESS_ADSERVICES_CUSTOM_AUDIENCE" to "Target you with custom ad audiences",
+
+            // Google-specific
+            "com.google.android.c2dm.permission.RECEIVE" to "Receive push notifications",
+            "com.google.android.providers.gsf.permission.READ_GSERVICES" to "Read Google service settings",
+            "com.google.android.gms.permission.ACTIVITY_RECOGNITION" to "Detect physical activity (walking, driving)"
         )
     }
 }
