@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import com.akeshari.takecontrol.data.model.AppCategory
 import com.akeshari.takecontrol.data.model.AppPermissionInfo
 import com.akeshari.takecontrol.data.model.PermissionDetail
 import com.akeshari.takecontrol.util.PermissionClassifier
@@ -42,11 +43,13 @@ class PermissionScanner @Inject constructor(
             null
         }
 
+        val category = resolveCategory(packageInfo)
+
         val requestedPermissions = packageInfo.requestedPermissions ?: emptyArray()
         val requestedFlags = packageInfo.requestedPermissionsFlags ?: IntArray(requestedPermissions.size)
         val permissions = requestedPermissions.indices.map { i ->
             val isGranted = requestedFlags[i] and PackageInfo.REQUESTED_PERMISSION_GRANTED != 0
-            classifier.classify(requestedPermissions[i], isGranted)
+            classifier.classify(requestedPermissions[i], isGranted, category)
         }
 
         val riskScore = calculateRiskScore(permissions)
@@ -57,8 +60,82 @@ class PermissionScanner @Inject constructor(
             icon = icon,
             isSystemApp = isSystemApp(packageInfo),
             permissions = permissions,
-            riskScore = riskScore
+            riskScore = riskScore,
+            category = category
         )
+    }
+
+    private fun resolveCategory(packageInfo: PackageInfo): AppCategory {
+        // Layer 1: Android system category (API 26+)
+        val systemCategory = packageInfo.applicationInfo?.category
+        val fromSystem = when (systemCategory) {
+            ApplicationInfo.CATEGORY_GAME -> AppCategory.GAMES
+            ApplicationInfo.CATEGORY_AUDIO -> AppCategory.ENTERTAINMENT
+            ApplicationInfo.CATEGORY_VIDEO -> AppCategory.ENTERTAINMENT
+            ApplicationInfo.CATEGORY_IMAGE -> AppCategory.ENTERTAINMENT
+            ApplicationInfo.CATEGORY_SOCIAL -> AppCategory.SOCIAL_MEDIA
+            ApplicationInfo.CATEGORY_NEWS -> AppCategory.ENTERTAINMENT
+            ApplicationInfo.CATEGORY_MAPS -> AppCategory.UTILITIES
+            ApplicationInfo.CATEGORY_PRODUCTIVITY -> AppCategory.PRODUCTIVITY
+            else -> null
+        }
+        if (fromSystem != null) return fromSystem
+
+        // Layer 2: Package-name heuristic
+        return resolveCategoryFromPackage(packageInfo.packageName)
+    }
+
+    private fun resolveCategoryFromPackage(packageName: String): AppCategory {
+        val pkg = packageName.lowercase()
+        return when {
+            // Communication
+            pkg.contains("whatsapp") || pkg.contains("telegram") || pkg.contains("signal") ||
+            pkg.contains("messenger") || pkg.contains("viber") || pkg.contains("discord") ||
+            pkg.contains("slack") || pkg.contains("skype") -> AppCategory.COMMUNICATION
+
+            // Social media
+            pkg.contains("instagram") || pkg.contains("facebook") || pkg.contains("twitter") ||
+            pkg.contains("tiktok") || pkg.contains("snapchat") || pkg.contains("reddit") ||
+            pkg.contains("linkedin") || pkg.contains("pinterest") -> AppCategory.SOCIAL_MEDIA
+
+            // Finance
+            pkg.contains("banking") || pkg.contains("bank") || pkg.contains("pay") ||
+            pkg.contains("wallet") || pkg.contains("finance") || pkg.contains("gpay") ||
+            pkg.contains("phonepe") || pkg.contains("paytm") -> AppCategory.FINANCE
+
+            // Shopping
+            pkg.contains("amazon") || pkg.contains("flipkart") || pkg.contains("myntra") ||
+            pkg.contains("shopping") || pkg.contains("shop") || pkg.contains("swiggy") ||
+            pkg.contains("zomato") || pkg.contains("blinkit") -> AppCategory.SHOPPING
+
+            // Health
+            pkg.contains("health") || pkg.contains("fitness") || pkg.contains("workout") ||
+            pkg.contains("medical") || pkg.contains("yoga") -> AppCategory.HEALTH
+
+            // Education
+            pkg.contains("edu") || pkg.contains("learn") || pkg.contains("course") ||
+            pkg.contains("study") || pkg.contains("school") || pkg.contains("duolingo") -> AppCategory.EDUCATION
+
+            // Games
+            pkg.contains("game") || pkg.contains("play.") && pkg.contains("games") -> AppCategory.GAMES
+
+            // Entertainment
+            pkg.contains("youtube") || pkg.contains("netflix") || pkg.contains("spotify") ||
+            pkg.contains("music") || pkg.contains("video") || pkg.contains("player") ||
+            pkg.contains("hotstar") || pkg.contains("prime") -> AppCategory.ENTERTAINMENT
+
+            // Productivity
+            pkg.contains("office") || pkg.contains("docs") || pkg.contains("sheets") ||
+            pkg.contains("drive") || pkg.contains("notion") || pkg.contains("calendar") ||
+            pkg.contains("notes") || pkg.contains("todo") -> AppCategory.PRODUCTIVITY
+
+            // Utilities
+            pkg.contains("calculator") || pkg.contains("clock") || pkg.contains("weather") ||
+            pkg.contains("flashlight") || pkg.contains("compass") || pkg.contains("files") ||
+            pkg.contains("cleaner") || pkg.contains("launcher") -> AppCategory.UTILITIES
+
+            else -> AppCategory.OTHER
+        }
     }
 
     private fun calculateRiskScore(permissions: List<PermissionDetail>): Int {

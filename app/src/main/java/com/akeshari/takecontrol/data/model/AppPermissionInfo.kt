@@ -8,7 +8,8 @@ data class AppPermissionInfo(
     val icon: Drawable?,
     val isSystemApp: Boolean,
     val permissions: List<PermissionDetail>,
-    val riskScore: Int // 0-100
+    val riskScore: Int, // 0-100
+    val category: AppCategory = AppCategory.OTHER
 )
 
 data class PermissionDetail(

@@ -1,6 +1,7 @@
 package com.akeshari.takecontrol.util
 
 import android.Manifest
+import com.akeshari.takecontrol.data.model.AppCategory
 import com.akeshari.takecontrol.data.model.PermissionDetail
 import com.akeshari.takecontrol.data.model.PermissionGroup
 import com.akeshari.takecontrol.data.model.RiskLevel
@@ -10,9 +11,14 @@ import javax.inject.Singleton
 @Singleton
 class PermissionClassifier @Inject constructor() {
 
-    fun classify(permission: String, isGranted: Boolean): PermissionDetail {
+    fun classify(
+        permission: String,
+        isGranted: Boolean,
+        category: AppCategory = AppCategory.OTHER
+    ): PermissionDetail {
         val group = mapToGroup(permission)
-        val riskLevel = assessRisk(permission, group)
+        val staticRisk = assessRisk(permission, group)
+        val riskLevel = CategoryRiskMatrix.assessContextualRisk(staticRisk, group, category)
         val label = formatLabel(permission)
 
         return PermissionDetail(
