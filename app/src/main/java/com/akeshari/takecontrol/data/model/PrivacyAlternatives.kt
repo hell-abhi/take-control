@@ -3,8 +3,10 @@ package com.akeshari.takecontrol.data.model
 data class PrivacyAlternative(
     val category: String,
     val mainstream: String,
+    val mainstreamPackage: String,
     val mainstreamIssue: String,
     val alternative: String,
+    val alternativePackage: String,
     val whyBetter: String,
     val keyFeatures: List<String>
 )
@@ -13,97 +15,97 @@ object PrivacyAlternativesData {
     val ALL = listOf(
         PrivacyAlternative(
             category = "Messaging",
-            mainstream = "WhatsApp",
+            mainstream = "WhatsApp", mainstreamPackage = "com.whatsapp",
             mainstreamIssue = "Owned by Meta. Collects metadata (who you talk to, when, how often) and shares it with Facebook for ad targeting.",
-            alternative = "Signal",
+            alternative = "Signal", alternativePackage = "org.thoughtcrime.securesms",
             whyBetter = "End-to-end encrypted by default. Open source. Collects virtually no metadata. Run by a non-profit foundation.",
             keyFeatures = listOf("No metadata collection", "Open source & audited", "Non-profit, no ads ever", "Disappearing messages built-in")
         ),
         PrivacyAlternative(
             category = "Email",
-            mainstream = "Gmail",
+            mainstream = "Gmail", mainstreamPackage = "com.google.android.gm",
             mainstreamIssue = "Google scans email content for ad targeting. Stores emails indefinitely. Tracks your purchases, travel, and subscriptions from email content.",
-            alternative = "ProtonMail",
+            alternative = "ProtonMail", alternativePackage = "ch.protonmail.android",
             whyBetter = "End-to-end encrypted email. Based in Switzerland (strong privacy laws). Cannot read your emails even if compelled by a court.",
             keyFeatures = listOf("End-to-end encryption", "Swiss privacy jurisdiction", "Zero-access architecture", "No tracking or profiling")
         ),
         PrivacyAlternative(
             category = "Browser",
-            mainstream = "Chrome",
+            mainstream = "Chrome", mainstreamPackage = "com.android.chrome",
             mainstreamIssue = "Built by Google, the world's largest ad company. Tracks every site you visit. Syncs browsing history to your Google account.",
-            alternative = "Brave",
+            alternative = "Brave", alternativePackage = "com.brave.browser",
             whyBetter = "Built-in ad and tracker blocker. Based on Chromium so all extensions work. Doesn't send browsing data to any company.",
             keyFeatures = listOf("Blocks ads & trackers by default", "No browsing history sent anywhere", "Built-in Tor for private tabs", "Chromium-based, all extensions work")
         ),
         PrivacyAlternative(
             category = "Search",
-            mainstream = "Google Search",
+            mainstream = "Google Search", mainstreamPackage = "com.google.android.googlequicksearchbox",
             mainstreamIssue = "Records every search query tied to your identity. Builds a detailed interest profile. Uses search data for ad targeting across all Google products.",
-            alternative = "DuckDuckGo",
+            alternative = "DuckDuckGo", alternativePackage = "com.duckduckgo.mobile.android",
             whyBetter = "Doesn't track searches. Doesn't store search history. Doesn't build a profile on you. Same results, no surveillance.",
             keyFeatures = listOf("Zero search history stored", "No user profiling", "No personalized ad targeting", "Anonymous search results")
         ),
         PrivacyAlternative(
             category = "Maps",
-            mainstream = "Google Maps",
+            mainstream = "Google Maps", mainstreamPackage = "com.google.android.apps.maps",
             mainstreamIssue = "Records your complete location history. Tracks every place you visit, how long you stay, and how you travel. Data used for ads.",
-            alternative = "OsmAnd",
+            alternative = "OsmAnd", alternativePackage = "net.osmand",
             whyBetter = "Fully offline maps. Open source. No tracking, no location history. Works without internet connection.",
             keyFeatures = listOf("Offline maps, no internet needed", "No location tracking", "Open source", "Turn-by-turn navigation offline")
         ),
         PrivacyAlternative(
             category = "Cloud Storage",
-            mainstream = "Google Drive",
+            mainstream = "Google Drive", mainstreamPackage = "com.google.android.apps.docs",
             mainstreamIssue = "Google can scan your files. Data stored on Google servers with Google's encryption keys. Subject to US data requests.",
-            alternative = "Nextcloud",
+            alternative = "Nextcloud", alternativePackage = "com.nextcloud.client",
             whyBetter = "Self-hosted or choose your provider. You control the encryption keys. Your files, your server, your rules.",
             keyFeatures = listOf("Self-hosted option", "End-to-end encryption", "Full data ownership", "No vendor lock-in")
         ),
         PrivacyAlternative(
             category = "Social Media",
-            mainstream = "Instagram",
+            mainstream = "Instagram", mainstreamPackage = "com.instagram.android",
             mainstreamIssue = "Owned by Meta. Tracks activity across apps via SDK. Algorithmic feed designed for engagement, not your wellbeing. Extensive data collection.",
-            alternative = "Mastodon (via Tusky)",
+            alternative = "Mastodon (via Tusky)", alternativePackage = "com.keylesspalace.tusky",
             whyBetter = "Decentralized — no single company controls it. Chronological feed. No ads, no tracking, no algorithm. You choose your community.",
             keyFeatures = listOf("Decentralized, no owner", "Chronological feed, no algorithm", "No ads or tracking", "Choose your own server/community")
         ),
         PrivacyAlternative(
             category = "Password Manager",
-            mainstream = "Chrome Passwords",
+            mainstream = "Chrome Passwords", mainstreamPackage = "com.android.chrome",
             mainstreamIssue = "Passwords stored in your Google account. If your Google account is compromised, all passwords are exposed. Not independently audited.",
-            alternative = "Bitwarden",
+            alternative = "Bitwarden", alternativePackage = "com.x8bit.bitwarden",
             whyBetter = "Open source, independently audited. End-to-end encrypted. Works across all devices and browsers. Free tier available.",
             keyFeatures = listOf("Open source & audited", "End-to-end encrypted vault", "Cross-platform", "Free tier with full features")
         ),
         PrivacyAlternative(
             category = "Keyboard",
-            mainstream = "Gboard",
+            mainstream = "Gboard", mainstreamPackage = "com.google.android.inputmethod.latin",
             mainstreamIssue = "Made by Google. Can send everything you type to Google servers for 'prediction improvement'. Has full internet access.",
-            alternative = "HeliBoard",
+            alternative = "HeliBoard", alternativePackage = "helium314.keyboard",
             whyBetter = "Open source keyboard with no internet permission at all. Nothing you type can ever leave your device. Supports gestures and autocorrect.",
             keyFeatures = listOf("Zero internet access", "Nothing leaves your device", "Open source", "Gesture typing supported")
         ),
         PrivacyAlternative(
             category = "Video",
-            mainstream = "YouTube",
+            mainstream = "YouTube", mainstreamPackage = "com.google.android.youtube",
             mainstreamIssue = "Owned by Google. Tracks every video you watch to build a detailed interest profile. Uses data for ad targeting. Algorithmic recommendations.",
-            alternative = "NewPipe",
+            alternative = "NewPipe", alternativePackage = "org.schabi.newpipe",
             whyBetter = "Open source YouTube frontend. No ads, no tracking, no Google account needed. Background play and downloads included.",
             keyFeatures = listOf("No ads whatsoever", "No Google account needed", "No watch history tracking", "Background play & downloads")
         ),
         PrivacyAlternative(
             category = "Notes",
-            mainstream = "Google Keep",
+            mainstream = "Google Keep", mainstreamPackage = "com.google.android.keep",
             mainstreamIssue = "Stored on Google servers. Google can access your notes. Synced to your Google account with no end-to-end encryption.",
-            alternative = "Standard Notes",
+            alternative = "Standard Notes", alternativePackage = "com.standardnotes",
             whyBetter = "End-to-end encrypted notes. Open source. Your notes are unreadable to anyone but you, including the developers.",
             keyFeatures = listOf("End-to-end encrypted", "Open source", "Zero-knowledge architecture", "Cross-platform sync")
         ),
         PrivacyAlternative(
             category = "2FA / Authenticator",
-            mainstream = "Google Authenticator",
+            mainstream = "Google Authenticator", mainstreamPackage = "com.google.android.apps.authenticator2",
             mainstreamIssue = "Recently added cloud sync which sends your 2FA seeds to Google servers. Seeds stored without end-to-end encryption.",
-            alternative = "Aegis Authenticator",
+            alternative = "Aegis Authenticator", alternativePackage = "com.beemdevelopment.aegis",
             whyBetter = "Open source, offline-only. Your 2FA codes never leave your device. Encrypted local vault with biometric unlock.",
             keyFeatures = listOf("Completely offline", "Encrypted local vault", "Open source", "Biometric unlock")
         )

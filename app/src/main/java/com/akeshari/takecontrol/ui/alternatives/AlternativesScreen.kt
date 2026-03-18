@@ -10,6 +10,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.*
@@ -22,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akeshari.takecontrol.data.model.PrivacyAlternative
@@ -127,6 +130,8 @@ private fun SwipeView(alternatives: List<PrivacyAlternative>, modifier: Modifier
 
 @Composable
 private fun SwipeCard(alt: PrivacyAlternative) {
+    val context = LocalContext.current
+
     Card(
         modifier = Modifier.fillMaxSize(),
         shape = RoundedCornerShape(20.dp),
@@ -150,25 +155,33 @@ private fun SwipeCard(alt: PrivacyAlternative) {
 
             Spacer(Modifier.height(16.dp))
 
-            // "Instead of" section
+            // "Instead of" section with app initial
             Text("Instead of", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(4.dp))
-            Text(alt.mainstream, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = RiskHigh)
             Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AppInitialBadge(alt.mainstream, RiskHigh)
+                Spacer(Modifier.width(12.dp))
+                Text(alt.mainstream, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = RiskHigh)
+            }
+            Spacer(Modifier.height(8.dp))
             Text(alt.mainstreamIssue, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 18.sp)
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(18.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.surface)
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(18.dp))
 
-            // "Try" section
+            // "Try" section with app initial
             Text("Try", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(4.dp))
-            Text(alt.alternative, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = RiskSafe)
             Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AppInitialBadge(alt.alternative, RiskSafe)
+                Spacer(Modifier.width(12.dp))
+                Text(alt.alternative, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = RiskSafe)
+            }
+            Spacer(Modifier.height(8.dp))
             Text(alt.whyBetter, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 18.sp)
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(14.dp))
 
             // Key features
             alt.keyFeatures.forEach { feature ->
@@ -178,7 +191,43 @@ private fun SwipeCard(alt: PrivacyAlternative) {
                     Text(feature, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
                 }
             }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Get on Play Store button
+            OutlinedButton(
+                onClick = {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${alt.alternativePackage}"))
+                    )
+                },
+                modifier = Modifier.fillMaxWidth().height(42.dp),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Icon(Icons.Outlined.OpenInNew, null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Get ${alt.alternative.split(" ").first()} on Play Store", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            }
         }
+    }
+}
+
+@Composable
+private fun AppInitialBadge(name: String, color: Color) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(color.copy(alpha = 0.15f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            name.first().toString(),
+            fontFamily = PressStart2P,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
     }
 }
 
