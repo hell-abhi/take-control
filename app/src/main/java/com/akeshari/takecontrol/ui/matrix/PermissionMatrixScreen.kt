@@ -93,7 +93,7 @@ fun PermissionMatrixScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Permission Matrix") },
+                title = { Text("Permission Matrix", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 13.sp) },
                 actions = {
                     IconButton(onClick = { showLegend = !showLegend }) {
                         Icon(Icons.Outlined.Info, "Legend")

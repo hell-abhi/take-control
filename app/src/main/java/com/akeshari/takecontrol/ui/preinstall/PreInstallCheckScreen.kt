@@ -41,18 +41,7 @@ fun PreInstallCheckScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Outlined.Search,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Text("App Lookup", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                    }
-                }
+                title = { Text("App Lookup", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 13.sp) }
             )
         }
     ) { padding ->

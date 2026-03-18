@@ -64,18 +64,7 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Outlined.Shield,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Text("Take Control", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    }
-                },
+                title = { Text("Take Control", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 13.sp) },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }) {
                         Icon(Icons.Outlined.Refresh, "Refresh")

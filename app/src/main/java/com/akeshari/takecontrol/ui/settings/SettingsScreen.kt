@@ -24,18 +24,9 @@ import com.akeshari.takecontrol.ui.theme.*
 fun SettingsScreen() {
     Scaffold(
         topBar = {
-            TopAppBar(title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Outlined.Shield,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text("About", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                }
-            })
+            TopAppBar(
+                title = { Text("About", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 13.sp) }
+            )
         }
     ) { padding ->
         Column(
