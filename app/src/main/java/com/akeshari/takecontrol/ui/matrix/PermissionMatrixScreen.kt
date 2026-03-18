@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Search
@@ -98,11 +99,14 @@ fun PermissionMatrixScreen(
             .fillMaxSize()
             .statusBarsPadding()
     ) {
-        // Compact header with actions
+        // Header
+        Spacer(Modifier.height(4.dp))
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Icon(Icons.Outlined.GridView, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.width(10.dp))
             Text("Permission Matrix", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.weight(1f))
             IconButton(onClick = { showLegend = !showLegend }) {
                 Icon(Icons.Outlined.Info, "Legend", tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -111,8 +115,8 @@ fun PermissionMatrixScreen(
                 Icon(Icons.Outlined.FilterList, "Filters", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-            // Explainer
-            ExplainerCard(
+        // Explainer
+        ExplainerCard(
                 title = "How to read the permission matrix",
                 sections = listOf(
                     ExplainerSection(

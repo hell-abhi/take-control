@@ -98,10 +98,12 @@ fun ThreatsScreen(
             .padding(horizontal = 20.dp)
             .statusBarsPadding()
     ) {
-        // Compact header
+        // Header
         Spacer(Modifier.height(12.dp))
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Tracker Radar", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.weight(1f))
+            Icon(Icons.Outlined.Visibility, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.width(10.dp))
+            Text("Tracker Radar", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
             Text("${state.totalCompanies} companies", style = MaterialTheme.typography.labelMedium, color = RiskCritical, fontWeight = FontWeight.SemiBold)
         }
         Spacer(Modifier.height(12.dp))

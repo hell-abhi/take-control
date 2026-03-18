@@ -77,7 +77,7 @@ fun ActivityScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
         ) {
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(8.dp))
 
             ExplainerCard(
                 title = "What does Activity Monitor show?",

@@ -79,18 +79,20 @@ fun DashboardScreen(
                 .padding(horizontal = 20.dp)
                 .statusBarsPadding()
         ) {
-            // Compact brand header
+            // Brand header
             Spacer(Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Take Control", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.weight(1f))
+                Icon(Icons.Outlined.Lock, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                Spacer(Modifier.width(10.dp))
+                Text("Take Control", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
                 IconButton(onClick = { viewModel.refresh() }) {
                     Icon(Icons.Outlined.Refresh, "Refresh", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
                 // 1. Compact Score Banner
                 CompactScoreCard(state.privacyScore, state.summary, onFixGroup)
