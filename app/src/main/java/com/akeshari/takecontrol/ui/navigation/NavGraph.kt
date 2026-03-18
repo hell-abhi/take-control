@@ -3,13 +3,9 @@ package com.akeshari.takecontrol.ui.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.outlined.GridView
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.*
@@ -59,12 +55,11 @@ data class BottomNavItem(
     val unselectedIcon: ImageVector
 )
 
+// 3 core tabs only — everything else is accessible from Home's Tools section
 val bottomNavItems = listOf(
-    BottomNavItem(Routes.DASHBOARD, "Score", Icons.Filled.Shield, Icons.Outlined.Shield),
+    BottomNavItem(Routes.DASHBOARD, "Home", Icons.Filled.Shield, Icons.Outlined.Shield),
     BottomNavItem(Routes.THREATS_BASE, "Radar", Icons.Filled.Visibility, Icons.Outlined.Visibility),
-    BottomNavItem(Routes.PERMISSION_MATRIX_BASE, "Apps", Icons.Filled.GridView, Icons.Outlined.GridView),
-    BottomNavItem(Routes.PRE_INSTALL, "Lookup", Icons.Filled.Search, Icons.Outlined.Search),
-    BottomNavItem(Routes.SETTINGS, "About", Icons.Filled.Info, Icons.Outlined.Info)
+    BottomNavItem(Routes.PERMISSION_MATRIX_BASE, "Apps", Icons.Filled.GridView, Icons.Outlined.GridView)
 )
 
 @Composable
@@ -73,11 +68,10 @@ fun TakeControlNavHost() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    // Show bottom bar on the 3 main tabs only
     val showBottomBar = currentRoute != null && (
         currentRoute == Routes.DASHBOARD ||
         currentRoute.startsWith(Routes.PERMISSION_MATRIX_BASE) ||
-        currentRoute == Routes.SETTINGS ||
-        currentRoute == Routes.PRE_INSTALL ||
         currentRoute?.startsWith(Routes.THREATS_BASE) == true
     )
 
@@ -91,8 +85,6 @@ fun TakeControlNavHost() {
                         val selected = when (item.route) {
                             Routes.DASHBOARD -> currentRoute == Routes.DASHBOARD
                             Routes.PERMISSION_MATRIX_BASE -> currentRoute?.startsWith(Routes.PERMISSION_MATRIX_BASE) == true
-                            Routes.SETTINGS -> currentRoute == Routes.SETTINGS
-                            Routes.PRE_INSTALL -> currentRoute == Routes.PRE_INSTALL
                             Routes.THREATS_BASE -> currentRoute?.startsWith(Routes.THREATS_BASE) == true
                             else -> false
                         }
@@ -159,6 +151,9 @@ fun TakeControlNavHost() {
                             launchSingleTop = true
                         }
                     },
+                    onNavigate = { route ->
+                        navController.navigate(route)
+                    },
                     onAppClick = { packageName ->
                         navController.navigate(Routes.appDetail(packageName))
                     }
@@ -203,12 +198,13 @@ fun TakeControlNavHost() {
                 )
             }
 
+            // Secondary screens (accessible from Home's Tools section)
             composable(Routes.PRE_INSTALL) {
-                PreInstallCheckScreen()
+                PreInstallCheckScreen(onBack = { navController.popBackStack() })
             }
 
             composable(Routes.SETTINGS) {
-                SettingsScreen()
+                SettingsScreen(onBack = { navController.popBackStack() })
             }
 
             composable(

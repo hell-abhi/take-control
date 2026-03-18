@@ -36,6 +36,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.akeshari.takecontrol.data.database.entity.PermissionChangeEntity
 import com.akeshari.takecontrol.data.model.*
+import com.akeshari.takecontrol.ui.navigation.Routes
 import com.akeshari.takecontrol.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -47,6 +48,7 @@ fun DashboardScreen(
     onViewAllApps: () -> Unit,
     onFixGroup: (String) -> Unit,
     onNavigateToRadar: (String?) -> Unit,
+    onNavigate: (String) -> Unit,
     onAppClick: (String) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
@@ -136,6 +138,61 @@ fun DashboardScreen(
                 }
 
                 Spacer(Modifier.height(24.dp))
+
+                // 7. Tools
+                Text("Tools", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(10.dp))
+                ToolsGrid(onNavigate)
+
+                Spacer(Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+// ── Tools Grid ──────────────────────────────────────────────────────────────
+
+private data class ToolItem(
+    val icon: ImageVector,
+    val label: String,
+    val description: String,
+    val route: String
+)
+
+@Composable
+private fun ToolsGrid(onNavigate: (String) -> Unit) {
+    val tools = listOf(
+        ToolItem(Icons.Outlined.Search, "App Lookup", "Check any app before installing", Routes.PRE_INSTALL),
+        ToolItem(Icons.Outlined.Info, "About", "How the app and scoring works", Routes.SETTINGS)
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        tools.forEach { tool ->
+            Card(
+                onClick = { onNavigate(tool.route) },
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(tool.icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(tool.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        Text(tool.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                }
             }
         }
     }

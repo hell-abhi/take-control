@@ -6,6 +6,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -26,6 +27,7 @@ import com.akeshari.takecontrol.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    onBack: () -> Unit = {},
     viewModel: AboutViewModel = hiltViewModel()
 ) {
     val score by viewModel.score.collectAsStateWithLifecycle()
@@ -33,7 +35,12 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("About", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 13.sp) }
+                title = { Text("About", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 13.sp) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back")
+                    }
+                }
             )
         }
     ) { padding ->

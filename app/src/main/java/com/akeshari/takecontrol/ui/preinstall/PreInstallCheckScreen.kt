@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,6 +36,7 @@ import com.akeshari.takecontrol.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PreInstallCheckScreen(
+    onBack: () -> Unit = {},
     viewModel: PreInstallCheckViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -43,7 +45,12 @@ fun PreInstallCheckScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("App Lookup", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 13.sp) }
+                title = { Text("App Lookup", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 13.sp) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back")
+                    }
+                }
             )
         }
     ) { padding ->
