@@ -238,43 +238,42 @@ private fun ActionPanel(packageName: String, isSystemApp: Boolean) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 "Take Action",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(Modifier.height(12.dp))
 
+            // Manage Permissions — full width
+            Button(
+                onClick = {
+                    context.startActivity(
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.fromParts("package", packageName, null)
+                        }
+                    )
+                },
+                modifier = Modifier.fillMaxWidth().height(44.dp),
+                shape = RoundedCornerShape(6.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(Icons.Outlined.Shield, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Manage Permissions", fontWeight = FontWeight.SemiBold)
+            }
+
+            // Restrict + Uninstall side by side
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Manage Permissions
-                Button(
-                    onClick = {
-                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.fromParts("package", packageName, null)
-                        }
-                        context.startActivity(intent)
-                    },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(6.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
-                ) {
-                    Icon(Icons.Outlined.Shield, null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Manage", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                }
-
                 // Restrict Background
                 OutlinedButton(
                     onClick = {
-                        // Try multiple approaches to open app-specific battery settings
                         val launched = tryStartActivity(context,
-                            // 1. Direct component (works on Samsung, AOSP 12+)
                             Intent().apply {
                                 component = ComponentName(
                                     "com.android.settings",
@@ -282,15 +281,9 @@ private fun ActionPanel(packageName: String, isSystemApp: Boolean) {
                                 )
                                 putExtra("android.provider.extra.APP_PACKAGE", packageName)
                             },
-                            // 2. Standard app battery settings action
-                            Intent("android.settings.APP_BATTERY_SETTINGS").apply {
-                                data = Uri.fromParts("package", packageName, null)
-                            },
-                            // 3. Fallback: general battery optimization list
                             Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
                         )
                         if (!launched) {
-                            // Last resort: app info page
                             context.startActivity(
                                 Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                                     data = Uri.fromParts("package", packageName, null)
@@ -298,27 +291,27 @@ private fun ActionPanel(packageName: String, isSystemApp: Boolean) {
                             )
                         }
                     },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(6.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
+                    modifier = Modifier.weight(1f).height(44.dp),
+                    shape = RoundedCornerShape(6.dp)
                 ) {
-                    Icon(Icons.Outlined.BatteryAlert, null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Restrict", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Icon(Icons.Outlined.BatteryAlert, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Restrict", fontWeight = FontWeight.SemiBold)
                 }
 
                 // Uninstall (not for system apps)
                 if (!isSystemApp) {
                     Button(
                         onClick = {
-                            val launched = tryStartActivity(context,
-                                // Primary: standard uninstall dialog
-                                Intent(Intent.ACTION_DELETE, Uri.parse("package:$packageName")),
-                                // Fallback: explicit uninstall action
-                                Intent("android.intent.action.UNINSTALL_PACKAGE", Uri.parse("package:$packageName"))
-                            )
-                            if (!launched) {
-                                // Last resort: open app info where user can tap uninstall
+                            // Direct, simple approach — no tryStartActivity wrapper
+                            try {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_DELETE).apply {
+                                        data = Uri.parse("package:$packageName")
+                                    }
+                                )
+                            } catch (_: Exception) {
+                                // Absolute fallback: open app info page
                                 context.startActivity(
                                     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                                         data = Uri.fromParts("package", packageName, null)
@@ -326,14 +319,13 @@ private fun ActionPanel(packageName: String, isSystemApp: Boolean) {
                                 )
                             }
                         },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).height(44.dp),
                         shape = RoundedCornerShape(6.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = RiskCritical),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
+                        colors = ButtonDefaults.buttonColors(containerColor = RiskCritical)
                     ) {
-                        Icon(Icons.Outlined.Delete, null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Uninstall", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        Icon(Icons.Outlined.Delete, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Uninstall", fontWeight = FontWeight.SemiBold, color = Color.White)
                     }
                 }
             }
