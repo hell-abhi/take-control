@@ -6,10 +6,12 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,6 +30,7 @@ import com.akeshari.takecontrol.ui.dashboard.DashboardScreen
 import com.akeshari.takecontrol.ui.matrix.PermissionMatrixScreen
 import com.akeshari.takecontrol.ui.preinstall.PreInstallCheckScreen
 import com.akeshari.takecontrol.ui.settings.SettingsScreen
+import com.akeshari.takecontrol.ui.threats.ThreatsScreen
 
 object Routes {
     const val DASHBOARD = "dashboard"
@@ -36,6 +39,7 @@ object Routes {
     const val SETTINGS = "settings"
     const val APP_DETAIL = "app_detail/{packageName}"
     const val PRE_INSTALL = "pre_install"
+    const val THREATS = "threats"
 
     fun appDetail(packageName: String) = "app_detail/$packageName"
     fun permissionMatrix(group: String? = null): String {
@@ -51,7 +55,8 @@ data class BottomNavItem(
 )
 
 val bottomNavItems = listOf(
-    BottomNavItem(Routes.DASHBOARD, "Dashboard", Icons.Filled.Shield, Icons.Outlined.Shield),
+    BottomNavItem(Routes.DASHBOARD, "Home", Icons.Filled.Shield, Icons.Outlined.Shield),
+    BottomNavItem(Routes.THREATS, "Threats", Icons.Filled.Visibility, Icons.Outlined.Visibility),
     BottomNavItem(Routes.PERMISSION_MATRIX_BASE, "Matrix", Icons.Filled.GridView, Icons.Outlined.GridView),
     BottomNavItem(Routes.PRE_INSTALL, "Check", Icons.Filled.Search, Icons.Outlined.Search),
     BottomNavItem(Routes.SETTINGS, "Settings", Icons.Filled.Settings, Icons.Outlined.Settings)
@@ -67,7 +72,8 @@ fun TakeControlNavHost() {
         currentRoute == Routes.DASHBOARD ||
         currentRoute.startsWith(Routes.PERMISSION_MATRIX_BASE) ||
         currentRoute == Routes.SETTINGS ||
-        currentRoute == Routes.PRE_INSTALL
+        currentRoute == Routes.PRE_INSTALL ||
+        currentRoute == Routes.THREATS
     )
 
     Scaffold(
@@ -82,6 +88,7 @@ fun TakeControlNavHost() {
                             Routes.PERMISSION_MATRIX_BASE -> currentRoute?.startsWith(Routes.PERMISSION_MATRIX_BASE) == true
                             Routes.SETTINGS -> currentRoute == Routes.SETTINGS
                             Routes.PRE_INSTALL -> currentRoute == Routes.PRE_INSTALL
+                            Routes.THREATS -> currentRoute == Routes.THREATS
                             else -> false
                         }
                         NavigationBarItem(
@@ -158,6 +165,14 @@ fun TakeControlNavHost() {
                 val group = backStackEntry.arguments?.getString("group")
                 PermissionMatrixScreen(
                     highlightGroup = group,
+                    onAppClick = { packageName ->
+                        navController.navigate(Routes.appDetail(packageName))
+                    }
+                )
+            }
+
+            composable(Routes.THREATS) {
+                ThreatsScreen(
                     onAppClick = { packageName ->
                         navController.navigate(Routes.appDetail(packageName))
                     }
