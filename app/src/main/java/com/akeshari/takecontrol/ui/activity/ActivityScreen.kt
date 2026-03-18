@@ -25,7 +25,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.akeshari.takecontrol.data.model.ZombieApp
 import com.akeshari.takecontrol.data.scanner.AppUsageInfo
 import com.akeshari.takecontrol.ui.theme.*
 
@@ -68,65 +67,92 @@ fun ActivityScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.height(12.dp))
-                        Text("Analyzing activity...", style = MaterialTheme.typography.bodyMedium)
+                        Text("Analyzing app usage...", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             } else {
-                // Summary
-                SummaryRow(
-                    zombieCount = state.zombieApps.size,
-                    overPermCount = state.overPermissioned.size,
-                    trackedCount = state.heavyTracked.size
-                )
+                // Permission Budget summary
+                PermissionBudgetCard(state)
 
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(20.dp))
 
-                // Zombie apps
+                // Zombie Apps
                 if (state.zombieApps.isNotEmpty()) {
-                    SectionTitle("Zombie Apps", "Unused 30+ days but still have access")
-                    Spacer(Modifier.height(8.dp))
-                    state.zombieApps.take(5).forEach { zombie ->
-                        ZombieRow(zombie, onAppClick)
+                    Text("Zombie Apps", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Not opened in 30+ days, still have sensitive access", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(10.dp))
+                    state.zombieApps.forEach { app ->
+                        ZombieRow(app, onAppClick)
                         Spacer(Modifier.height(6.dp))
                     }
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(16.dp))
                 }
 
-                // Over-permissioned
-                if (state.overPermissioned.isNotEmpty()) {
-                    SectionTitle("Rarely Used, Fully Granted", "Apps with sensitive access but < 5 min use today")
-                    Spacer(Modifier.height(8.dp))
-                    state.overPermissioned.take(5).forEach { app ->
-                        UsageRow(app, onAppClick)
-                        Spacer(Modifier.height(6.dp))
-                    }
-                    Spacer(Modifier.height(14.dp))
-                }
-
-                // Heavy tracked
-                if (state.heavyTracked.isNotEmpty()) {
-                    SectionTitle("Most Tracked", "Apps with the most embedded tracking SDKs")
-                    Spacer(Modifier.height(8.dp))
-                    state.heavyTracked.take(5).forEach { app ->
-                        TrackedRow(app, onAppClick)
+                // Usage vs Exposure
+                if (state.overExposed.isNotEmpty()) {
+                    Text("Usage vs Exposure", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Apps ranked by privacy cost relative to how much you use them", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(10.dp))
+                    state.overExposed.forEach { app ->
+                        ExposureRow(app, onAppClick)
                         Spacer(Modifier.height(6.dp))
                     }
                 }
 
-                if (state.zombieApps.isEmpty() && state.overPermissioned.isEmpty() && state.heavyTracked.isEmpty()) {
+                if (state.zombieApps.isEmpty() && state.overExposed.isEmpty()) {
                     Card(shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = RiskSafe.copy(alpha = 0.1f))) {
                         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Outlined.CheckCircle, null, tint = RiskSafe, modifier = Modifier.size(22.dp))
                             Spacer(Modifier.width(10.dp))
-                            Text("All clear!", style = MaterialTheme.typography.bodyMedium, color = RiskSafe)
+                            Text("Looking good! No zombie apps or over-exposed apps found.", style = MaterialTheme.typography.bodyMedium, color = RiskSafe)
                         }
                     }
                 }
             }
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(24.dp))
         }
     }
 }
+
+// ── Permission Budget Card ──────────────────────────────────────────────────
+
+@Composable
+private fun PermissionBudgetCard(state: ActivityState) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(18.dp)) {
+            Text("Permission Budget", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(12.dp))
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                BudgetStat("${state.totalAppsWithAccess}", "Have\nAccess", MaterialTheme.colorScheme.primary)
+                BudgetStat("${state.appsUsedThisWeek}", "Used This\nWeek", RiskSafe)
+                BudgetStat("${state.appsNotUsedWithPerms}", "Unused With\nAccess", if (state.appsNotUsedWithPerms > 0) RiskHigh else RiskSafe)
+            }
+
+            if (state.appsNotUsedWithPerms > 0) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "${state.appsNotUsedWithPerms} apps have sensitive permissions but you didn't use them this week",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = RiskHigh
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BudgetStat(value: String, label: String, color: androidx.compose.ui.graphics.Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, fontFamily = JetBrainsMono, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = color)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 13.sp, maxLines = 2)
+    }
+}
+
+// ── Permission Request ──────────────────────────────────────────────────────
 
 @Composable
 private fun PermissionCard(onGrant: () -> Unit) {
@@ -147,83 +173,89 @@ private fun PermissionCard(onGrant: () -> Unit) {
     }
 }
 
-@Composable
-private fun SummaryRow(zombieCount: Int, overPermCount: Int, trackedCount: Int) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        StatCard("Zombies", zombieCount, if (zombieCount > 0) RiskHigh else RiskSafe, Icons.Outlined.DeleteSweep, Modifier.weight(1f))
-        StatCard("Over-granted", overPermCount, if (overPermCount > 0) RiskMedium else RiskSafe, Icons.Outlined.Shield, Modifier.weight(1f))
-        StatCard("Tracked", trackedCount, if (trackedCount > 0) RiskHigh else RiskSafe, Icons.Outlined.Visibility, Modifier.weight(1f))
-    }
-}
+// ── Zombie Row ──────────────────────────────────────────────────────────────
 
 @Composable
-private fun StatCard(label: String, count: Int, color: androidx.compose.ui.graphics.Color, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier) {
-    Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.08f)), modifier = modifier) {
-        Column(Modifier.fillMaxWidth().padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(18.dp))
-            Text("$count", fontFamily = JetBrainsMono, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = color)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
-        }
-    }
-}
-
-@Composable
-private fun SectionTitle(title: String, subtitle: String) {
-    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-}
-
-@Composable
-private fun ZombieRow(zombie: ZombieApp, onAppClick: (String) -> Unit) {
-    Card(onClick = { onAppClick(zombie.packageName) }, shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)).background(RiskHigh.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
-                Text(if (zombie.daysSinceUsed >= 999) "?" else "${zombie.daysSinceUsed}d", fontFamily = JetBrainsMono, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = RiskHigh)
+private fun ZombieRow(app: AppUsageInfo, onAppClick: (String) -> Unit) {
+    Card(
+        onClick = { onAppClick(app.packageName) },
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Last opened badge
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.width(52.dp)
+            ) {
+                Text(app.lastOpened, style = MaterialTheme.typography.labelSmall, color = RiskHigh, fontWeight = FontWeight.SemiBold, maxLines = 2, lineHeight = 13.sp)
             }
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(zombie.appName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(zombie.dangerousPermissions.joinToString(" · "), style = MaterialTheme.typography.labelSmall, color = RiskHigh, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-    }
-}
-
-@Composable
-private fun UsageRow(app: AppUsageInfo, onAppClick: (String) -> Unit) {
-    Card(onClick = { onAppClick(app.packageName) }, shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)).background(RiskMedium.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
-                Text("${app.foregroundMinutesToday}m", fontFamily = JetBrainsMono, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = RiskMedium)
-            }
-            Spacer(Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(app.appName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("${app.dangerousPermissions.size} sensitive perms granted", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (app.trackerCount > 0) {
-                Box(Modifier.clip(RoundedCornerShape(4.dp)).background(RiskHigh.copy(alpha = 0.12f)).padding(horizontal = 6.dp, vertical = 2.dp)) {
-                    Text("${app.trackerCount} trackers", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = RiskHigh)
+                Text(app.appName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(4.dp))
+                // Permission chips
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    app.dangerousPermissions.take(3).forEach { perm ->
+                        Box(
+                            modifier = Modifier.clip(RoundedCornerShape(3.dp)).background(RiskHigh.copy(alpha = 0.1f)).padding(horizontal = 5.dp, vertical = 1.dp)
+                        ) {
+                            Text(perm.split(" ").first(), fontSize = 9.sp, color = RiskHigh, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                    if (app.dangerousPermissions.size > 3) {
+                        Text("+${app.dangerousPermissions.size - 3}", fontSize = 9.sp, color = RiskHigh)
+                    }
                 }
             }
         }
     }
 }
 
+// ── Exposure Row ────────────────────────────────────────────────────────────
+
 @Composable
-private fun TrackedRow(app: AppUsageInfo, onAppClick: (String) -> Unit) {
-    Card(onClick = { onAppClick(app.packageName) }, shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)).background(RiskCritical.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
-                Text("${app.trackerCount}", fontFamily = JetBrainsMono, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = RiskCritical)
+private fun ExposureRow(app: AppUsageInfo, onAppClick: (String) -> Unit) {
+    // Exposure bar: ratio of privacy cost to usage
+    val maxRatio = 20f // cap for visual
+    val barFraction = (app.exposureRatio / maxRatio).coerceIn(0f, 1f)
+    val barColor = when {
+        app.exposureRatio > 10 -> RiskCritical
+        app.exposureRatio > 5 -> RiskHigh
+        app.exposureRatio > 2 -> RiskMedium
+        else -> RiskLow
+    }
+
+    Card(
+        onClick = { onAppClick(app.packageName) },
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(app.appName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (app.trackerCount > 0) {
+                    Box(Modifier.clip(RoundedCornerShape(3.dp)).background(RiskHigh.copy(alpha = 0.1f)).padding(horizontal = 5.dp, vertical = 1.dp)) {
+                        Text("${app.trackerCount} trackers", fontSize = 9.sp, color = RiskHigh, fontWeight = FontWeight.Medium)
+                    }
+                }
             }
-            Spacer(Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(app.appName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                val usageText = if (app.foregroundMinutesToday > 0) "${app.foregroundMinutesToday}m today" else "Not used today"
-                Text(usageText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(6.dp))
+
+            // Usage info
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Used: ${if (app.weeklyMinutes > 0) "${app.weeklyMinutes}m/week" else "0m this week"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("${app.dangerousPermissions.size} sensitive perms", style = MaterialTheme.typography.labelSmall, color = barColor)
             }
-            Text("risk ${app.riskScore}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = RiskHigh)
+
+            Spacer(Modifier.height(6.dp))
+
+            // Exposure bar
+            Box(
+                modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(barColor.copy(alpha = 0.12f))
+            ) {
+                Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(barFraction).background(barColor))
+            }
         }
     }
 }

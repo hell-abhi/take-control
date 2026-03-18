@@ -16,9 +16,11 @@ import javax.inject.Inject
 data class ActivityState(
     val isLoading: Boolean = true,
     val hasPermission: Boolean = false,
-    val zombieApps: List<ZombieApp> = emptyList(),
-    val overPermissioned: List<AppUsageInfo> = emptyList(), // apps with permissions but rarely used
-    val heavyTracked: List<AppUsageInfo> = emptyList()       // apps with most trackers
+    val zombieApps: List<AppUsageInfo> = emptyList(),       // 30+ days unused with permissions
+    val overExposed: List<AppUsageInfo> = emptyList(),       // high exposure ratio
+    val totalAppsWithAccess: Int = 0,
+    val appsUsedThisWeek: Int = 0,
+    val appsNotUsedWithPerms: Int = 0
 )
 
 @HiltViewModel
@@ -35,41 +37,41 @@ class ActivityViewModel @Inject constructor(
     }
 
     fun checkPermission() {
-        _state.value = _state.value.copy(hasPermission = activityMonitor.hasUsagePermission())
-        if (_state.value.hasPermission && _state.value.zombieApps.isEmpty()) load()
+        val has = activityMonitor.hasUsagePermission()
+        _state.value = _state.value.copy(hasPermission = has)
+        if (has && _state.value.zombieApps.isEmpty()) load()
     }
 
     private fun load() {
         viewModelScope.launch {
-            val hasPermission = activityMonitor.hasUsagePermission()
-            _state.value = _state.value.copy(isLoading = true, hasPermission = hasPermission)
-
-            if (!hasPermission) {
-                _state.value = _state.value.copy(isLoading = false)
-                return@launch
-            }
+            val has = activityMonitor.hasUsagePermission()
+            _state.value = _state.value.copy(isLoading = true, hasPermission = has)
+            if (!has) { _state.value = _state.value.copy(isLoading = false); return@launch }
 
             val apps = repository.getInstalledApps()
-            val zombies = activityMonitor.getZombieApps(apps)
-            val usage = activityMonitor.getAppUsageAnalysis(apps)
+            val allUsage = activityMonitor.analyze(apps)
 
-            // Over-permissioned: apps with dangerous perms but used < 5 min today
-            val overPermissioned = usage
-                .filter { it.dangerousPermissions.isNotEmpty() && it.foregroundMinutesToday < 5 }
+            val zombies = allUsage.filter { it.lastOpenedDays >= 30 || it.lastOpenedDays == -1 }
+                .filter { it.dangerousPermissions.isNotEmpty() }
+                .sortedByDescending { it.dangerousPermissions.size }
+
+            val overExposed = allUsage
+                .filter { it.lastOpenedDays < 30 && it.lastOpenedDays != -1 } // exclude zombies
+                .sortedByDescending { it.exposureRatio }
                 .take(10)
 
-            // Heavy tracked: apps with 2+ trackers, sorted by tracker count
-            val heavyTracked = usage
-                .filter { it.trackerCount >= 2 }
-                .sortedByDescending { it.trackerCount }
-                .take(10)
+            val totalWithAccess = allUsage.count { it.dangerousPermissions.isNotEmpty() }
+            val usedThisWeek = allUsage.count { it.weeklyMinutes > 0 }
+            val notUsedWithPerms = allUsage.count { it.weeklyMinutes == 0L && it.dangerousPermissions.isNotEmpty() }
 
             _state.value = ActivityState(
                 isLoading = false,
                 hasPermission = true,
                 zombieApps = zombies,
-                overPermissioned = overPermissioned,
-                heavyTracked = heavyTracked
+                overExposed = overExposed,
+                totalAppsWithAccess = totalWithAccess,
+                appsUsedThisWeek = usedThisWeek,
+                appsNotUsedWithPerms = notUsedWithPerms
             )
         }
     }
