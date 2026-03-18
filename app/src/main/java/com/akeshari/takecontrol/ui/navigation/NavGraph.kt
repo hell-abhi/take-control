@@ -213,6 +213,16 @@ fun TakeControlNavHost() {
                     onBack = { navController.popBackStack() },
                     onAppClick = { packageName ->
                         navController.navigate(Routes.appDetail(packageName))
+                    },
+                    onViewMatrix = {
+                        navController.popBackStack()
+                        navController.navigate(Routes.permissionMatrix()) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
                 )
             }

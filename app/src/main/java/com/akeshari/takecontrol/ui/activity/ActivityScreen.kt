@@ -13,12 +13,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.akeshari.takecontrol.data.model.RiskLevel
 import com.akeshari.takecontrol.data.scanner.AppUsageInfo
 import com.akeshari.takecontrol.ui.theme.*
 
@@ -37,6 +40,7 @@ import com.akeshari.takecontrol.ui.theme.*
 fun ActivityScreen(
     onBack: () -> Unit,
     onAppClick: (String) -> Unit,
+    onViewMatrix: () -> Unit = {},
     viewModel: ActivityViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -73,29 +77,70 @@ fun ActivityScreen(
                     }
                 }
             } else {
-                // Permission Budget
-                PermissionBudgetCard(state)
-                Spacer(Modifier.height(18.dp))
+                // 1. Permission Budget
+                SectionCard(
+                    title = "Permission Budget",
+                    subtitle = "Apps with sensitive permissions (Location, Camera, Mic, Contacts, SMS, Phone)"
+                ) {
+                    val total = state.totalAppsWithAccess
+                    val used = state.appsUsedThisWeek
+                    val unused = state.appsNotUsedWithPerms
+                    if (total > 0) {
+                        Row(Modifier.fillMaxWidth().height(28.dp).clip(RoundedCornerShape(6.dp))) {
+                            if (used > 0) {
+                                Box(Modifier.weight(used.toFloat()).fillMaxHeight().background(RiskSafe), contentAlignment = Alignment.Center) {
+                                    Text("$used used", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+                            if (unused > 0) {
+                                Box(Modifier.weight(unused.toFloat()).fillMaxHeight().background(RiskHigh), contentAlignment = Alignment.Center) {
+                                    Text("$unused unused", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text("$total apps have sensitive access. $used used this week, $unused not.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = onViewMatrix,
+                            modifier = Modifier.fillMaxWidth().height(36.dp),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp)
+                        ) {
+                            Text("View in Permission Matrix", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, modifier = Modifier.size(14.dp))
+                        }
+                    } else {
+                        Text("No apps with sensitive permissions found.", style = MaterialTheme.typography.bodySmall, color = RiskSafe)
+                    }
+                }
 
-                // Zombie Apps (collapsible)
+                Spacer(Modifier.height(10.dp))
+
+                // 2. Zombie Apps
                 if (state.zombieApps.isNotEmpty()) {
-                    CollapsibleSection(
+                    SectionCard(
                         title = "Zombie Apps (${state.zombieApps.size})",
-                        subtitle = "Not opened in 30+ days but still have sensitive permissions. Tap any app to review and revoke access."
+                        subtitle = "Not opened in 30+ days but still have sensitive permissions. Tap to review.",
+                        collapsible = true,
+                        defaultExpanded = false
                     ) {
                         state.zombieApps.forEach { app ->
                             ZombieRow(app, onAppClick)
                             Spacer(Modifier.height(6.dp))
                         }
                     }
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(10.dp))
                 }
 
-                // Usage vs Exposure (collapsible)
+                // 3. Usage vs Exposure
                 if (state.overExposed.isNotEmpty()) {
-                    CollapsibleSection(
+                    SectionCard(
                         title = "Usage vs Exposure (${state.overExposed.size})",
-                        subtitle = "Apps ranked by privacy cost relative to how much you actually use them. A high bar means the app has lots of access but you barely use it — consider revoking permissions."
+                        subtitle = "Apps with high privacy cost relative to actual use. More permissions + less usage = higher exposure.",
+                        collapsible = true,
+                        defaultExpanded = false
                     ) {
                         state.overExposed.forEach { app ->
                             ExposureRow(app, onAppClick)
@@ -105,12 +150,8 @@ fun ActivityScreen(
                 }
 
                 if (state.zombieApps.isEmpty() && state.overExposed.isEmpty()) {
-                    Card(shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = RiskSafe.copy(alpha = 0.1f))) {
-                        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Outlined.CheckCircle, null, tint = RiskSafe, modifier = Modifier.size(22.dp))
-                            Spacer(Modifier.width(10.dp))
-                            Text("Looking good! No zombie apps or over-exposed apps found.", style = MaterialTheme.typography.bodyMedium, color = RiskSafe)
-                        }
+                    SectionCard(title = "All Clear", subtitle = "No zombie apps or over-exposed apps found.") {
+                        Icon(Icons.Outlined.CheckCircle, null, tint = RiskSafe, modifier = Modifier.size(22.dp))
                     }
                 }
             }
@@ -119,70 +160,50 @@ fun ActivityScreen(
     }
 }
 
-// ── Collapsible Section ─────────────────────────────────────────────────────
+// ── Section Card (consistent container for all sections) ────────────────────
 
 @Composable
-private fun CollapsibleSection(title: String, subtitle: String, content: @Composable ColumnScope.() -> Unit) {
-    var expanded by remember { mutableStateOf(true) }
+private fun SectionCard(
+    title: String,
+    subtitle: String,
+    collapsible: Boolean = false,
+    defaultExpanded: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    var expanded by remember { mutableStateOf(defaultExpanded) }
 
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { expanded = !expanded }.padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 16.sp)
-            }
-            Spacer(Modifier.width(8.dp))
-            Icon(
-                if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp)
-            )
-        }
-        Spacer(Modifier.height(8.dp))
-        AnimatedVisibility(visible = expanded, enter = expandVertically(), exit = shrinkVertically()) {
-            Column { content() }
-        }
-    }
-}
-
-// ── Permission Budget ───────────────────────────────────────────────────────
-
-@Composable
-private fun PermissionBudgetCard(state: ActivityState) {
-    Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(Modifier.fillMaxWidth().padding(18.dp)) {
-            Text("Permission Budget", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "Apps with sensitive permissions (Location, Camera, Mic, Contacts, SMS, Phone)",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(12.dp))
-
-            // Visual: used vs unused bar
-            val total = state.totalAppsWithAccess
-            val used = state.appsUsedThisWeek
-            val unused = state.appsNotUsedWithPerms
-            if (total > 0) {
-                Row(Modifier.fillMaxWidth().height(28.dp).clip(RoundedCornerShape(6.dp))) {
-                    if (used > 0) {
-                        Box(Modifier.weight(used.toFloat()).fillMaxHeight().background(RiskSafe), contentAlignment = Alignment.Center) {
-                            Text("$used used", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = androidx.compose.ui.graphics.Color.White)
-                        }
-                    }
-                    if (unused > 0) {
-                        Box(Modifier.weight(unused.toFloat()).fillMaxHeight().background(RiskHigh), contentAlignment = Alignment.Center) {
-                            Text("$unused unused", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = androidx.compose.ui.graphics.Color.White)
-                        }
-                    }
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+            // Header
+            Row(
+                modifier = if (collapsible) Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).clickable { expanded = !expanded } else Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(2.dp))
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 16.sp)
                 }
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "$total apps have sensitive access. $used were used this week, $unused were not.",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (collapsible) {
+                    Spacer(Modifier.width(8.dp))
+                    Icon(
+                        if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                        null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            // Content
+            if (collapsible) {
+                AnimatedVisibility(visible = expanded, enter = expandVertically(), exit = shrinkVertically()) {
+                    Column(Modifier.padding(top = 12.dp)) { content() }
+                }
+            } else {
+                Spacer(Modifier.height(12.dp))
+                content()
             }
         }
     }
@@ -209,6 +230,14 @@ private fun PermissionCard(onGrant: () -> Unit) {
     }
 }
 
+// ── Permission group color helper ───────────────────────────────────────────
+
+@Composable
+private fun permGroupColor(risk: RiskLevel): Color = when (risk) {
+    RiskLevel.CRITICAL -> RiskCritical; RiskLevel.HIGH -> RiskHigh
+    RiskLevel.MEDIUM -> RiskMedium; RiskLevel.LOW -> RiskLow
+}
+
 // ── Zombie Row ──────────────────────────────────────────────────────────────
 
 @Composable
@@ -216,30 +245,36 @@ private fun ZombieRow(app: AppUsageInfo, onAppClick: (String) -> Unit) {
     Card(
         onClick = { onAppClick(app.packageName) },
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
     ) {
-        Column(Modifier.fillMaxWidth().padding(14.dp)) {
+        Column(Modifier.fillMaxWidth().padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(app.appName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(app.lastOpened, style = MaterialTheme.typography.labelSmall, color = RiskHigh, fontWeight = FontWeight.Medium)
             }
             Spacer(Modifier.height(6.dp))
-            // Permission group icons with labels
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                app.permissionGroups.take(5).forEach { pg ->
-                    val color = when (pg.icon.defaultRisk) {
-                        com.akeshari.takecontrol.data.model.RiskLevel.CRITICAL -> RiskCritical
-                        com.akeshari.takecontrol.data.model.RiskLevel.HIGH -> RiskHigh
-                        com.akeshari.takecontrol.data.model.RiskLevel.MEDIUM -> RiskMedium
-                        else -> RiskLow
+            // Permission chips — use FlowRow-like wrapping via multiple rows
+            val chips = app.permissionGroups.take(6)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                chips.take(3).forEach { pg ->
+                    val c = permGroupColor(pg.icon.defaultRisk)
+                    Row(Modifier.clip(RoundedCornerShape(4.dp)).background(c.copy(alpha = 0.1f)).padding(horizontal = 5.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(pg.icon.icon, null, tint = c, modifier = Modifier.size(11.dp))
+                        Spacer(Modifier.width(2.dp))
+                        Text(pg.groupName.take(8), fontSize = 9.sp, color = c, fontWeight = FontWeight.Medium, maxLines = 1)
                     }
-                    Row(
-                        modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(color.copy(alpha = 0.1f)).padding(horizontal = 6.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(pg.icon.icon, null, tint = color, modifier = Modifier.size(12.dp))
-                        Spacer(Modifier.width(3.dp))
-                        Text(pg.groupName, fontSize = 9.sp, color = color, fontWeight = FontWeight.Medium)
+                }
+            }
+            if (chips.size > 3) {
+                Spacer(Modifier.height(3.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    chips.drop(3).forEach { pg ->
+                        val c = permGroupColor(pg.icon.defaultRisk)
+                        Row(Modifier.clip(RoundedCornerShape(4.dp)).background(c.copy(alpha = 0.1f)).padding(horizontal = 5.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(pg.icon.icon, null, tint = c, modifier = Modifier.size(11.dp))
+                            Spacer(Modifier.width(2.dp))
+                            Text(pg.groupName.take(8), fontSize = 9.sp, color = c, fontWeight = FontWeight.Medium, maxLines = 1)
+                        }
                     }
                 }
             }
@@ -251,62 +286,32 @@ private fun ZombieRow(app: AppUsageInfo, onAppClick: (String) -> Unit) {
 
 @Composable
 private fun ExposureRow(app: AppUsageInfo, onAppClick: (String) -> Unit) {
-    val maxRatio = 20f
-    val barFraction = (app.exposureRatio / maxRatio).coerceIn(0f, 1f)
-    val barColor = when {
-        app.exposureRatio > 10 -> RiskCritical
-        app.exposureRatio > 5 -> RiskHigh
-        app.exposureRatio > 2 -> RiskMedium
-        else -> RiskLow
-    }
-
     Card(
         onClick = { onAppClick(app.packageName) },
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
     ) {
-        Column(Modifier.fillMaxWidth().padding(14.dp)) {
-            // App name + tracker badge
+        Column(Modifier.fillMaxWidth().padding(12.dp)) {
+            // Name + usage
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(app.appName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (app.trackerCount > 0) {
-                    Box(Modifier.clip(RoundedCornerShape(3.dp)).background(RiskHigh.copy(alpha = 0.1f)).padding(horizontal = 5.dp, vertical = 1.dp)) {
-                        Text("${app.trackerCount} trackers", fontSize = 9.sp, color = RiskHigh, fontWeight = FontWeight.Medium)
-                    }
-                }
-            }
-            Spacer(Modifier.height(6.dp))
-
-            // Permission groups + usage
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Permission group icons
-                app.permissionGroups.take(4).forEach { pg ->
-                    val color = when (pg.icon.defaultRisk) {
-                        com.akeshari.takecontrol.data.model.RiskLevel.CRITICAL -> RiskCritical
-                        com.akeshari.takecontrol.data.model.RiskLevel.HIGH -> RiskHigh
-                        com.akeshari.takecontrol.data.model.RiskLevel.MEDIUM -> RiskMedium
-                        else -> RiskLow
-                    }
-                    Icon(pg.icon.icon, null, tint = color, modifier = Modifier.size(14.dp).padding(end = 2.dp))
-                }
-                Spacer(Modifier.weight(1f))
                 Text(
-                    if (app.weeklyMinutes > 0) "${app.weeklyMinutes}m/week" else "Not used this week",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    if (app.weeklyMinutes > 0) "${app.weeklyMinutes}m/wk" else "0m/wk",
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = JetBrainsMono
                 )
             }
             Spacer(Modifier.height(6.dp))
 
-            // Exposure bar with labels
+            // Permission icons + tracker count
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Low", fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.width(4.dp))
-                Box(Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(3.dp)).background(barColor.copy(alpha = 0.12f))) {
-                    Box(Modifier.fillMaxHeight().fillMaxWidth(barFraction).clip(RoundedCornerShape(3.dp)).background(barColor))
+                app.permissionGroups.take(5).forEach { pg ->
+                    val c = permGroupColor(pg.icon.defaultRisk)
+                    Icon(pg.icon.icon, null, tint = c, modifier = Modifier.size(14.dp).padding(end = 3.dp))
                 }
-                Spacer(Modifier.width(4.dp))
-                Text("High", fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("${app.dangerousPermissions.size} perms", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (app.trackerCount > 0) {
+                    Text(" · ${app.trackerCount} trackers", fontSize = 9.sp, color = RiskHigh)
+                }
             }
         }
     }
