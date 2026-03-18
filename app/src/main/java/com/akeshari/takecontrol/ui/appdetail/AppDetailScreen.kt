@@ -257,9 +257,13 @@ private fun ActionPanel(packageName: String, isSystemApp: Boolean) {
                 OutlinedButton(
                     onClick = {
                         try {
-                            val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                            // Try app-specific battery usage settings (Android 12+, Samsung, etc.)
+                            val intent = Intent("android.settings.APP_BATTERY_SETTINGS").apply {
+                                data = Uri.fromParts("package", packageName, null)
+                            }
                             context.startActivity(intent)
                         } catch (_: Exception) {
+                            // Fallback: open the app's own settings page (battery section accessible there)
                             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                                 data = Uri.fromParts("package", packageName, null)
                             }

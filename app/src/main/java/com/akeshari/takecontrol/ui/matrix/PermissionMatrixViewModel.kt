@@ -108,8 +108,9 @@ class PermissionMatrixViewModel @Inject constructor(
             else -> {
                 val group = current.filter.group
                 if (group != null) {
+                    // Exclude system apps to match dashboard counts
                     filtered.filter { app ->
-                        app.permissions.any { it.group == group && it.isGranted }
+                        !app.isSystemApp && app.permissions.any { it.group == group && it.isGranted }
                     }
                 } else filtered
             }

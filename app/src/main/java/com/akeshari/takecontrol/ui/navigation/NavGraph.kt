@@ -132,7 +132,12 @@ fun TakeControlNavHost() {
                         }
                     },
                     onFixGroup = { groupName ->
-                        navController.navigate(Routes.permissionMatrix(groupName))
+                        navController.navigate(Routes.permissionMatrix(groupName)) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                        }
                     },
                     onAppClick = { packageName ->
                         navController.navigate(Routes.appDetail(packageName))

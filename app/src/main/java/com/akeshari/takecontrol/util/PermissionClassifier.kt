@@ -108,11 +108,63 @@ class PermissionClassifier @Inject constructor() {
     }
 
     private fun formatLabel(permission: String): String {
-        // "android.permission.ACCESS_FINE_LOCATION" -> "Access Fine Location"
-        return permission
+        return PERMISSION_LABELS[permission] ?: permission
             .substringAfterLast(".")
             .replace("_", " ")
             .lowercase()
             .replaceFirstChar { it.uppercase() }
+    }
+
+    companion object {
+        private val PERMISSION_LABELS = mapOf(
+            // Location
+            Manifest.permission.ACCESS_FINE_LOCATION to "Precise GPS location",
+            Manifest.permission.ACCESS_COARSE_LOCATION to "Approximate location",
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION to "Location even when app is closed",
+
+            // Camera
+            Manifest.permission.CAMERA to "Take photos and videos",
+
+            // Microphone
+            Manifest.permission.RECORD_AUDIO to "Record audio through mic",
+
+            // Contacts
+            Manifest.permission.READ_CONTACTS to "Read your contacts",
+            Manifest.permission.WRITE_CONTACTS to "Modify your contacts",
+            Manifest.permission.GET_ACCOUNTS to "Find accounts on device",
+
+            // Storage
+            Manifest.permission.READ_EXTERNAL_STORAGE to "Read files and media",
+            Manifest.permission.WRITE_EXTERNAL_STORAGE to "Modify or delete files",
+            Manifest.permission.READ_MEDIA_IMAGES to "Access your photos",
+            Manifest.permission.READ_MEDIA_VIDEO to "Access your videos",
+            Manifest.permission.READ_MEDIA_AUDIO to "Access your music and audio",
+
+            // Phone
+            Manifest.permission.READ_PHONE_STATE to "Read phone number and device ID",
+            Manifest.permission.CALL_PHONE to "Make calls without your input",
+            Manifest.permission.READ_CALL_LOG to "Read your call history",
+            Manifest.permission.WRITE_CALL_LOG to "Modify your call history",
+            Manifest.permission.PROCESS_OUTGOING_CALLS to "Intercept outgoing calls",
+
+            // SMS
+            Manifest.permission.SEND_SMS to "Send SMS messages (may cost money)",
+            Manifest.permission.RECEIVE_SMS to "Receive and read incoming SMS",
+            Manifest.permission.READ_SMS to "Read all your SMS messages",
+            Manifest.permission.RECEIVE_MMS to "Receive and read MMS messages",
+
+            // Calendar
+            Manifest.permission.READ_CALENDAR to "Read your calendar events",
+            Manifest.permission.WRITE_CALENDAR to "Add or change calendar events",
+
+            // Sensors
+            Manifest.permission.BODY_SENSORS to "Access heart rate and body sensors",
+            Manifest.permission.ACTIVITY_RECOGNITION to "Detect physical activity (walking, driving)",
+
+            // Network
+            Manifest.permission.INTERNET to "Full internet access",
+            Manifest.permission.ACCESS_NETWORK_STATE to "View network connections",
+            Manifest.permission.ACCESS_WIFI_STATE to "View Wi-Fi connections"
+        )
     }
 }
