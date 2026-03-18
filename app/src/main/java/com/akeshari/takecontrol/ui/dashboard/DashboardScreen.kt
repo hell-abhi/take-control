@@ -281,15 +281,6 @@ private fun CompositeScoreCard(
             // Breakdown
             AnimatedVisibility(visible = expanded, enter = expandVertically(), exit = shrinkVertically()) {
                 Column(modifier = Modifier.padding(top = 12.dp)) {
-                    // Score formula explanation
-                    ScoreFormulaCard(privacyScore)
-
-                    Spacer(Modifier.height(14.dp))
-
-                    // Permission breakdowns with Fix buttons
-                    Text("Permission Breakdown", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(8.dp))
-
                     if (privacyScore.groupBreakdowns.isNotEmpty()) {
                         privacyScore.groupBreakdowns.forEach { breakdown ->
                             GroupBreakdownRow(breakdown, onFix = { onFixGroup(breakdown.group.name) })
@@ -297,7 +288,7 @@ private fun CompositeScoreCard(
                         }
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Each \"Fix\" shows which apps to revoke that permission from.",
+                            "Each \"Fix\" shows which apps to revoke. See About for how the score is calculated.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -382,97 +373,6 @@ private fun GroupBreakdownRow(breakdown: GroupBreakdown, onFix: () -> Unit) {
             colors = ButtonDefaults.buttonColors(containerColor = riskColor)
         ) {
             Text("Fix", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
-        }
-    }
-}
-
-// ── Score Formula Card ──────────────────────────────────────────────────────
-
-@Composable
-private fun ScoreFormulaCard(score: PrivacyScore) {
-    val permColor = when {
-        score.permissionScore >= 75 -> RiskSafe
-        score.permissionScore >= 50 -> RiskMedium
-        else -> RiskHigh
-    }
-    val trackerColor = when {
-        score.trackerScore >= 75 -> RiskSafe
-        score.trackerScore >= 50 -> RiskMedium
-        else -> RiskHigh
-    }
-
-    Card(
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
-            Text("How your score is calculated", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(10.dp))
-
-            // Formula
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Final Score", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(80.dp))
-                Text("= ", style = MaterialTheme.typography.bodySmall, fontFamily = JetBrainsMono, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("60%", fontFamily = JetBrainsMono, fontSize = 12.sp, color = permColor, fontWeight = FontWeight.Bold)
-                Text(" perm + ", style = MaterialTheme.typography.bodySmall, fontFamily = JetBrainsMono, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("40%", fontFamily = JetBrainsMono, fontSize = 12.sp, color = trackerColor, fontWeight = FontWeight.Bold)
-                Text(" tracker", style = MaterialTheme.typography.bodySmall, fontFamily = JetBrainsMono, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-
-            Spacer(Modifier.height(6.dp))
-
-            // Actual calculation
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("", modifier = Modifier.width(80.dp))
-                Text("= ", style = MaterialTheme.typography.bodySmall, fontFamily = JetBrainsMono, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("0.6 × ${score.permissionScore}", fontFamily = JetBrainsMono, fontSize = 12.sp, color = permColor)
-                Text(" + ", style = MaterialTheme.typography.bodySmall, fontFamily = JetBrainsMono, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("0.4 × ${score.trackerScore}", fontFamily = JetBrainsMono, fontSize = 12.sp, color = trackerColor)
-            }
-
-            Spacer(Modifier.height(6.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("", modifier = Modifier.width(80.dp))
-                Text("= ", style = MaterialTheme.typography.bodySmall, fontFamily = JetBrainsMono, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                val computedPerm = (score.permissionScore * 0.6).toInt()
-                val computedTracker = (score.trackerScore * 0.4).toInt()
-                Text("$computedPerm", fontFamily = JetBrainsMono, fontSize = 12.sp, color = permColor)
-                Text(" + ", style = MaterialTheme.typography.bodySmall, fontFamily = JetBrainsMono, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("$computedTracker", fontFamily = JetBrainsMono, fontSize = 12.sp, color = trackerColor)
-                Text(" = ", style = MaterialTheme.typography.bodySmall, fontFamily = JetBrainsMono, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("${score.total}", fontFamily = JetBrainsMono, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-            }
-
-            Spacer(Modifier.height(10.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-            Spacer(Modifier.height(10.dp))
-
-            // Sub-score explanations
-            Text("Permission Score (${score.permissionScore})", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = permColor)
-            Spacer(Modifier.height(2.dp))
-            if (score.riskTotal > 0) {
-                Text(
-                    "Out of ${score.riskTotal} total risk points, ${score.riskDenied} were avoided (denied). Score = ${score.riskDenied} ÷ ${score.riskTotal} × 100 = ${score.permissionScore}",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontFamily = JetBrainsMono,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 16.sp
-                )
-            } else {
-                Text("No sensitive permissions detected — perfect score.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            Text("Tracker Score (${score.trackerScore})", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = trackerColor)
-            Spacer(Modifier.height(2.dp))
-            Text(
-                "Based on tracker severity: Advertising & Profiling SDKs weigh 3×, Social 2×, Analytics 1×, Crash/ID 0.5×. Lower exposure = higher score.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 16.sp
-            )
         }
     }
 }

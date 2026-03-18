@@ -3,13 +3,13 @@ package com.akeshari.takecontrol.ui.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.*
@@ -64,7 +64,7 @@ val bottomNavItems = listOf(
     BottomNavItem(Routes.THREATS_BASE, "Radar", Icons.Filled.Visibility, Icons.Outlined.Visibility),
     BottomNavItem(Routes.PERMISSION_MATRIX_BASE, "Apps", Icons.Filled.GridView, Icons.Outlined.GridView),
     BottomNavItem(Routes.PRE_INSTALL, "Lookup", Icons.Filled.Search, Icons.Outlined.Search),
-    BottomNavItem(Routes.SETTINGS, "About", Icons.Filled.Settings, Icons.Outlined.Settings)
+    BottomNavItem(Routes.SETTINGS, "About", Icons.Filled.Info, Icons.Outlined.Info)
 )
 
 @Composable
