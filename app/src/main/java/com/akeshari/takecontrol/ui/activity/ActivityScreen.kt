@@ -2,11 +2,7 @@ package com.akeshari.takecontrol.ui.activity
 
 import android.content.Intent
 import android.provider.Settings
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,7 +25,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.akeshari.takecontrol.data.model.*
+import com.akeshari.takecontrol.data.model.ZombieApp
+import com.akeshari.takecontrol.data.scanner.AppUsageInfo
 import com.akeshari.takecontrol.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,40 +72,53 @@ fun ActivityScreen(
                     }
                 }
             } else {
-                // Summary stats
-                SummaryRow(state)
-                Spacer(Modifier.height(16.dp))
+                // Summary
+                SummaryRow(
+                    zombieCount = state.zombieApps.size,
+                    overPermCount = state.overPermissioned.size,
+                    trackedCount = state.heavyTracked.size
+                )
+
+                Spacer(Modifier.height(18.dp))
 
                 // Zombie apps
                 if (state.zombieApps.isNotEmpty()) {
-                    SectionTitle("Zombie Apps", "${state.zombieApps.size} unused apps still have access")
+                    SectionTitle("Zombie Apps", "Unused 30+ days but still have access")
                     Spacer(Modifier.height(8.dp))
                     state.zombieApps.take(5).forEach { zombie ->
                         ZombieRow(zombie, onAppClick)
                         Spacer(Modifier.height(6.dp))
                     }
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(14.dp))
                 }
 
-                // Recent access by permission
-                if (state.accessByPermission.isNotEmpty()) {
-                    SectionTitle("Last Accessed", "When apps last used sensitive permissions")
+                // Over-permissioned
+                if (state.overPermissioned.isNotEmpty()) {
+                    SectionTitle("Rarely Used, Fully Granted", "Apps with sensitive access but < 5 min use today")
                     Spacer(Modifier.height(8.dp))
-                    state.accessByPermission.forEach { (perm, accesses) ->
-                        AccessRow(perm, accesses, onAppClick)
+                    state.overPermissioned.take(5).forEach { app ->
+                        UsageRow(app, onAppClick)
+                        Spacer(Modifier.height(6.dp))
+                    }
+                    Spacer(Modifier.height(14.dp))
+                }
+
+                // Heavy tracked
+                if (state.heavyTracked.isNotEmpty()) {
+                    SectionTitle("Most Tracked", "Apps with the most embedded tracking SDKs")
+                    Spacer(Modifier.height(8.dp))
+                    state.heavyTracked.take(5).forEach { app ->
+                        TrackedRow(app, onAppClick)
                         Spacer(Modifier.height(6.dp))
                     }
                 }
 
-                if (state.zombieApps.isEmpty() && state.accessByPermission.isEmpty()) {
-                    Card(
-                        shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(containerColor = RiskSafe.copy(alpha = 0.1f))
-                    ) {
+                if (state.zombieApps.isEmpty() && state.overPermissioned.isEmpty() && state.heavyTracked.isEmpty()) {
+                    Card(shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = RiskSafe.copy(alpha = 0.1f))) {
                         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Outlined.CheckCircle, null, tint = RiskSafe, modifier = Modifier.size(22.dp))
                             Spacer(Modifier.width(10.dp))
-                            Text("All clear. No zombie apps or suspicious access detected.", style = MaterialTheme.typography.bodyMedium, color = RiskSafe)
+                            Text("All clear!", style = MaterialTheme.typography.bodyMedium, color = RiskSafe)
                         }
                     }
                 }
@@ -117,8 +127,6 @@ fun ActivityScreen(
         }
     }
 }
-
-// ── Permission Request ──────────────────────────────────────────────────────
 
 @Composable
 private fun PermissionCard(onGrant: () -> Unit) {
@@ -130,61 +138,34 @@ private fun PermissionCard(onGrant: () -> Unit) {
                 Text("Usage Access Required", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(8.dp))
-            Text("Activity Monitor needs Usage Access to detect zombie apps and see when permissions were last used. Data stays on your device.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Needed to detect zombie apps and analyze usage patterns. All data stays on your device.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(12.dp))
             Button(onClick = onGrant, modifier = Modifier.fillMaxWidth().height(44.dp), shape = RoundedCornerShape(8.dp)) {
-                Icon(Icons.Outlined.Settings, null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
                 Text("Grant in Settings", fontWeight = FontWeight.SemiBold)
             }
         }
     }
 }
 
-// ── Summary Stats ───────────────────────────────────────────────────────────
-
 @Composable
-private fun SummaryRow(state: ActivityState) {
+private fun SummaryRow(zombieCount: Int, overPermCount: Int, trackedCount: Int) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        SummaryCard(
-            count = state.zombieApps.size,
-            label = "Zombie\nApps",
-            color = if (state.zombieApps.isNotEmpty()) RiskHigh else RiskSafe,
-            icon = Icons.Outlined.DeleteSweep,
-            modifier = Modifier.weight(1f)
-        )
-        val bgCount = state.alerts.count { it.type == AlertType.BACKGROUND_SPY }
-        SummaryCard(
-            count = bgCount,
-            label = "Background\nAccess",
-            color = if (bgCount > 0) RiskCritical else RiskSafe,
-            icon = Icons.Outlined.VisibilityOff,
-            modifier = Modifier.weight(1f)
-        )
-        val nightCount = state.alerts.count { it.type == AlertType.NIGHT_CRAWLER }
-        SummaryCard(
-            count = nightCount,
-            label = "Night\nAccess",
-            color = if (nightCount > 0) RiskCritical else RiskSafe,
-            icon = Icons.Outlined.DarkMode,
-            modifier = Modifier.weight(1f)
-        )
+        StatCard("Zombies", zombieCount, if (zombieCount > 0) RiskHigh else RiskSafe, Icons.Outlined.DeleteSweep, Modifier.weight(1f))
+        StatCard("Over-granted", overPermCount, if (overPermCount > 0) RiskMedium else RiskSafe, Icons.Outlined.Shield, Modifier.weight(1f))
+        StatCard("Tracked", trackedCount, if (trackedCount > 0) RiskHigh else RiskSafe, Icons.Outlined.Visibility, Modifier.weight(1f))
     }
 }
 
 @Composable
-private fun SummaryCard(count: Int, label: String, color: androidx.compose.ui.graphics.Color, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier) {
+private fun StatCard(label: String, count: Int, color: androidx.compose.ui.graphics.Color, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier) {
     Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.08f)), modifier = modifier) {
-        Column(Modifier.fillMaxWidth().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.height(4.dp))
-            Text("$count", fontFamily = JetBrainsMono, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = color)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 14.sp, maxLines = 2)
+        Column(Modifier.fillMaxWidth().padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(18.dp))
+            Text("$count", fontFamily = JetBrainsMono, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = color)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
         }
     }
 }
-
-// ── Section Title ───────────────────────────────────────────────────────────
 
 @Composable
 private fun SectionTitle(title: String, subtitle: String) {
@@ -192,98 +173,57 @@ private fun SectionTitle(title: String, subtitle: String) {
     Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
-// ── Zombie Row ──────────────────────────────────────────────────────────────
-
 @Composable
 private fun ZombieRow(zombie: ZombieApp, onAppClick: (String) -> Unit) {
-    Card(
-        onClick = { onAppClick(zombie.packageName) },
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
+    Card(onClick = { onAppClick(zombie.packageName) }, shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)).background(RiskHigh.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    if (zombie.daysSinceUsed >= 999) "?" else "${zombie.daysSinceUsed}d",
-                    fontFamily = JetBrainsMono, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = RiskHigh
-                )
+            Box(Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)).background(RiskHigh.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
+                Text(if (zombie.daysSinceUsed >= 999) "?" else "${zombie.daysSinceUsed}d", fontFamily = JetBrainsMono, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = RiskHigh)
             }
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(zombie.appName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    zombie.dangerousPermissions.joinToString(" · "),
-                    style = MaterialTheme.typography.labelSmall, color = RiskHigh, maxLines = 1, overflow = TextOverflow.Ellipsis
-                )
+                Text(zombie.dangerousPermissions.joinToString(" · "), style = MaterialTheme.typography.labelSmall, color = RiskHigh, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
 }
-
-// ── Access Row ──────────────────────────────────────────────────────────────
 
 @Composable
-private fun AccessRow(permission: String, accesses: List<PermissionAccessRecord>, onAppClick: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    val color = when (permission) {
-        "Location", "Approx Location" -> RiskHigh
-        "Camera", "Microphone" -> RiskCritical
-        else -> RiskMedium
-    }
-    val now = remember { System.currentTimeMillis() }
-
-    Card(
-        onClick = { expanded = !expanded },
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Column(Modifier.fillMaxWidth().padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(4.dp, 20.dp).clip(RoundedCornerShape(2.dp)).background(color))
-                Spacer(Modifier.width(10.dp))
-                Text(permission, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                // Most recent access
-                val latest = accesses.firstOrNull()
-                if (latest != null) {
-                    if (latest.isBackground) {
-                        Box(Modifier.clip(RoundedCornerShape(3.dp)).background(RiskCritical.copy(alpha = 0.15f)).padding(horizontal = 4.dp, vertical = 1.dp)) {
-                            Text("BG", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = RiskCritical)
-                        }
-                        Spacer(Modifier.width(4.dp))
-                    }
-                    Text(formatAgo(now - latest.lastAccessTime), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Spacer(Modifier.width(4.dp))
-                Icon(if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun UsageRow(app: AppUsageInfo, onAppClick: (String) -> Unit) {
+    Card(onClick = { onAppClick(app.packageName) }, shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)).background(RiskMedium.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
+                Text("${app.foregroundMinutesToday}m", fontFamily = JetBrainsMono, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = RiskMedium)
             }
-
-            AnimatedVisibility(visible = expanded, enter = expandVertically(), exit = shrinkVertically()) {
-                Column(Modifier.padding(top = 8.dp, start = 14.dp)) {
-                    accesses.take(10).forEach { access ->
-                        Row(
-                            Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).clickable { onAppClick(access.packageName) }.padding(vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(access.appName, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            if (access.isBackground) {
-                                Box(Modifier.clip(RoundedCornerShape(3.dp)).background(RiskCritical.copy(alpha = 0.15f)).padding(horizontal = 4.dp, vertical = 1.dp)) {
-                                    Text("BG", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = RiskCritical)
-                                }
-                                Spacer(Modifier.width(4.dp))
-                            }
-                            Text(formatAgo(now - access.lastAccessTime), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(app.appName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${app.dangerousPermissions.size} sensitive perms granted", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (app.trackerCount > 0) {
+                Box(Modifier.clip(RoundedCornerShape(4.dp)).background(RiskHigh.copy(alpha = 0.12f)).padding(horizontal = 6.dp, vertical = 2.dp)) {
+                    Text("${app.trackerCount} trackers", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = RiskHigh)
                 }
             }
         }
     }
 }
 
-private fun formatAgo(millis: Long): String {
-    val m = millis / 60000; val h = millis / 3600000; val d = millis / 86400000
-    return when { m < 1 -> "now"; m < 60 -> "${m}m"; h < 24 -> "${h}h"; d < 30 -> "${d}d"; else -> "${d/30}mo" }
+@Composable
+private fun TrackedRow(app: AppUsageInfo, onAppClick: (String) -> Unit) {
+    Card(onClick = { onAppClick(app.packageName) }, shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)).background(RiskCritical.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
+                Text("${app.trackerCount}", fontFamily = JetBrainsMono, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = RiskCritical)
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(app.appName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                val usageText = if (app.foregroundMinutesToday > 0) "${app.foregroundMinutesToday}m today" else "Not used today"
+                Text(usageText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text("risk ${app.riskScore}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = RiskHigh)
+        }
+    }
 }

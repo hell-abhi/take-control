@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.akeshari.takecontrol.data.model.*
 import com.akeshari.takecontrol.data.repository.AppRepository
 import com.akeshari.takecontrol.data.scanner.ActivityMonitor
+import com.akeshari.takecontrol.data.scanner.AppUsageInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,10 +16,9 @@ import javax.inject.Inject
 data class ActivityState(
     val isLoading: Boolean = true,
     val hasPermission: Boolean = false,
-    val alerts: List<PrivacyAlert> = emptyList(),
     val zombieApps: List<ZombieApp> = emptyList(),
-    val recentAccesses: List<PermissionAccessRecord> = emptyList(),
-    val accessByPermission: Map<String, List<PermissionAccessRecord>> = emptyMap()
+    val overPermissioned: List<AppUsageInfo> = emptyList(), // apps with permissions but rarely used
+    val heavyTracked: List<AppUsageInfo> = emptyList()       // apps with most trackers
 )
 
 @HiltViewModel
@@ -34,13 +34,9 @@ class ActivityViewModel @Inject constructor(
         load()
     }
 
-    fun refresh() {
-        load()
-    }
-
     fun checkPermission() {
         _state.value = _state.value.copy(hasPermission = activityMonitor.hasUsagePermission())
-        if (_state.value.hasPermission) load()
+        if (_state.value.hasPermission && _state.value.zombieApps.isEmpty()) load()
     }
 
     private fun load() {
@@ -55,18 +51,25 @@ class ActivityViewModel @Inject constructor(
 
             val apps = repository.getInstalledApps()
             val zombies = activityMonitor.getZombieApps(apps)
-            val accesses = activityMonitor.getRecentAccesses(apps)
-            val alerts = activityMonitor.generateAlerts(apps, zombies, accesses)
+            val usage = activityMonitor.getAppUsageAnalysis(apps)
 
-            val accessByPermission = accesses.groupBy { it.permission }
+            // Over-permissioned: apps with dangerous perms but used < 5 min today
+            val overPermissioned = usage
+                .filter { it.dangerousPermissions.isNotEmpty() && it.foregroundMinutesToday < 5 }
+                .take(10)
+
+            // Heavy tracked: apps with 2+ trackers, sorted by tracker count
+            val heavyTracked = usage
+                .filter { it.trackerCount >= 2 }
+                .sortedByDescending { it.trackerCount }
+                .take(10)
 
             _state.value = ActivityState(
                 isLoading = false,
                 hasPermission = true,
-                alerts = alerts,
                 zombieApps = zombies,
-                recentAccesses = accesses,
-                accessByPermission = accessByPermission
+                overPermissioned = overPermissioned,
+                heavyTracked = heavyTracked
             )
         }
     }
