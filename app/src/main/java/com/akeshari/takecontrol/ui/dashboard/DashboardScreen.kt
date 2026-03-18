@@ -92,27 +92,10 @@ fun DashboardScreen(
                     Icon(Icons.Outlined.Refresh, "Refresh", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            // Trust badges
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.VerifiedUser, null, tint = RiskSafe, modifier = Modifier.size(14.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("100% Local", style = MaterialTheme.typography.labelSmall, color = RiskSafe, fontWeight = FontWeight.Medium)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.Code, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Open Source", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
-                }
-            }
-
             Spacer(Modifier.height(12.dp))
 
                 // 1. Compact Score Banner
-                CompactScoreCard(state.privacyScore, state.summary, onFixGroup)
+                CompactScoreCard(state.privacyScore, state.summary, state.companyOverviews, onFixGroup)
 
                 Spacer(Modifier.height(14.dp))
 
@@ -160,9 +143,11 @@ fun DashboardScreen(
 private fun CompactScoreCard(
     privacyScore: PrivacyScore,
     summary: String,
+    companyOverviews: List<CompanyOverview>,
     onFixGroup: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var showTrackers by remember { mutableStateOf(false) }
     val scoreColor = when {
         privacyScore.total >= 75 -> RiskSafe
         privacyScore.total >= 50 -> RiskMedium
@@ -175,37 +160,17 @@ private fun CompactScoreCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
-            // Score row: number left, details right
+            // Score row
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Big score number
-                Text(
-                    "${privacyScore.total}",
-                    fontSize = 44.sp,
-                    fontFamily = PressStart2P,
-                    fontWeight = FontWeight.Bold,
-                    color = scoreColor
-                )
+                Text("${privacyScore.total}", fontSize = 44.sp, fontFamily = PressStart2P, fontWeight = FontWeight.Bold, color = scoreColor)
                 Spacer(Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Privacy Score", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(4.dp))
-                    // Progress bar
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(scoreColor.copy(alpha = 0.15f))
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(privacyScore.total / 100f)
-                                .background(scoreColor)
-                        )
+                    Box(modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(scoreColor.copy(alpha = 0.15f))) {
+                        Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(privacyScore.total / 100f).background(scoreColor))
                     }
                     Spacer(Modifier.height(6.dp))
-                    // Sub-scores inline
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         SubScoreInline("Perms", privacyScore.permissionScore)
                         SubScoreInline("Trackers", privacyScore.trackerScore)
@@ -213,74 +178,102 @@ private fun CompactScoreCard(
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
-
-            // Summary
-            Text(
-                summary,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // Summary + trust badges
+            Spacer(Modifier.height(6.dp))
+            Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(4.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.VerifiedUser, null, tint = RiskSafe, modifier = Modifier.size(12.dp))
+                    Spacer(Modifier.width(3.dp))
+                    Text("100% Local", style = MaterialTheme.typography.labelSmall, color = RiskSafe, fontSize = 10.sp)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Code, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(12.dp))
+                    Spacer(Modifier.width(3.dp))
+                    Text("Open Source", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
+                }
+            }
 
             // Breakdown toggle
+            Spacer(Modifier.height(4.dp))
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { expanded = !expanded }
-                    .padding(vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { expanded = !expanded }.padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    if (expanded) "Hide breakdown" else "What's affecting your score?",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Icon(
-                    if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                    null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)
-                )
+                Text(if (expanded) "Hide breakdown" else "What's affecting your score?", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                Icon(if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
             }
 
+            // Breakdown with Permissions/Trackers toggle
             AnimatedVisibility(visible = expanded, enter = expandVertically(), exit = shrinkVertically()) {
                 Column(modifier = Modifier.padding(top = 8.dp)) {
-                    // Permission breakdown
-                    Text("Permissions", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.height(4.dp))
-                    if (privacyScore.groupBreakdowns.isNotEmpty()) {
-                        privacyScore.groupBreakdowns.forEach { breakdown ->
-                            GroupBreakdownRow(breakdown, onFix = { onFixGroup(breakdown.group.name) })
-                            Spacer(Modifier.height(5.dp))
+                    // Toggle
+                    Row(
+                        modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)).padding(2.dp)
+                    ) {
+                        BreakdownTab("Permissions", !showTrackers) { showTrackers = false }
+                        BreakdownTab("Trackers", showTrackers) { showTrackers = true }
+                    }
+                    Spacer(Modifier.height(8.dp))
+
+                    if (!showTrackers) {
+                        // Permission rows
+                        if (privacyScore.groupBreakdowns.isNotEmpty()) {
+                            privacyScore.groupBreakdowns.forEach { breakdown ->
+                                GroupBreakdownRow(breakdown, onFix = { onFixGroup(breakdown.group.name) })
+                                Spacer(Modifier.height(5.dp))
+                            }
+                        } else {
+                            Text("No sensitive permissions granted!", style = MaterialTheme.typography.bodySmall, color = RiskSafe)
                         }
                     } else {
-                        Text("No sensitive permissions granted!", style = MaterialTheme.typography.bodySmall, color = RiskSafe)
-                    }
-
-                    // Tracker breakdown
-                    Spacer(Modifier.height(10.dp))
-                    Text("Trackers", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.height(4.dp))
-                    val trackerColor = when {
-                        privacyScore.trackerScore >= 75 -> RiskSafe
-                        privacyScore.trackerScore >= 50 -> RiskMedium
-                        else -> RiskHigh
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).background(trackerColor.copy(alpha = 0.06f)).padding(horizontal = 10.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Outlined.Visibility, null, tint = trackerColor, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Tracker exposure score: ${privacyScore.trackerScore}/100", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
-                            Text("Ad & profiling SDKs weigh 3×, social 2×, analytics 1×", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        // Tracker company rows
+                        if (companyOverviews.isNotEmpty()) {
+                            companyOverviews.forEach { company ->
+                                val color = when {
+                                    company.appCount > 10 -> RiskCritical
+                                    company.appCount > 5 -> RiskHigh
+                                    company.appCount > 2 -> RiskMedium
+                                    else -> RiskLow
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).background(color.copy(alpha = 0.06f)).padding(horizontal = 10.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier.size(28.dp).clip(RoundedCornerShape(6.dp)).background(color.copy(alpha = 0.15f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(company.companyName.first().toString(), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = color)
+                                    }
+                                    Spacer(Modifier.width(10.dp))
+                                    Text(company.companyName, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                                    Text("${company.appCount} apps", style = MaterialTheme.typography.labelSmall, color = color, fontWeight = FontWeight.SemiBold)
+                                }
+                                Spacer(Modifier.height(5.dp))
+                            }
+                        } else {
+                            Text("No trackers detected!", style = MaterialTheme.typography.bodySmall, color = RiskSafe)
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun BreakdownTab(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 5.dp)
+    ) {
+        Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal, color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
