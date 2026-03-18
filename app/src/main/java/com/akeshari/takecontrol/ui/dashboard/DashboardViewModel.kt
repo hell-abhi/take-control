@@ -3,10 +3,7 @@ package com.akeshari.takecontrol.ui.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akeshari.takecontrol.data.database.entity.PermissionChangeEntity
-import com.akeshari.takecontrol.data.model.AppPermissionInfo
-import com.akeshari.takecontrol.data.model.PermissionGroup
-import com.akeshari.takecontrol.data.model.PrivacyScore
-import com.akeshari.takecontrol.data.model.PrivacyScoreCalculator
+import com.akeshari.takecontrol.data.model.*
 import com.akeshari.takecontrol.data.repository.AppRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,12 +14,15 @@ import javax.inject.Inject
 
 data class DashboardState(
     val isLoading: Boolean = true,
-    val privacyScore: PrivacyScore = PrivacyScore(0, 0, 0, 0, emptyList()),
+    val privacyScore: PrivacyScore = PrivacyScore(0, 0, 0, 0, 0, 0, emptyList()),
+    val summary: String = "",
     val userAppCount: Int = 0,
-    val systemAppCount: Int = 0,
     val totalPermissions: Int = 0,
+    val appsWithTrackers: Int = 0,
+    val totalTrackers: Int = 0,
     val topRiskyApps: List<AppPermissionInfo> = emptyList(),
     val permissionGroupCounts: Map<PermissionGroup, Int> = emptyMap(),
+    val companyOverviews: List<CompanyOverview> = emptyList(),
     val recentChanges: List<PermissionChangeEntity> = emptyList(),
     val error: String? = null
 )
@@ -50,13 +50,11 @@ class DashboardViewModel @Inject constructor(
             try {
                 val apps = repository.getInstalledApps(forceRefresh = false)
                 val userApps = apps.filter { !it.isSystemApp }
-                val systemApps = apps.filter { it.isSystemApp }
 
-                // Score based on user apps only
                 val totalPermissions = userApps.sumOf { it.permissions.count { p -> p.isGranted } }
                 val privacyScore = PrivacyScoreCalculator.calculate(userApps)
+                val companyOverviews = PrivacyScoreCalculator.getCompanyOverviews(userApps)
 
-                // Permission group counts: unique APPS per group (not permission instances)
                 val groupCounts = mutableMapOf<PermissionGroup, Int>()
                 for (group in PermissionGroup.entries) {
                     val count = userApps.count { app ->
@@ -65,16 +63,23 @@ class DashboardViewModel @Inject constructor(
                     if (count > 0) groupCounts[group] = count
                 }
 
+                val appsWithTrackers = userApps.count { it.trackers.isNotEmpty() }
+                val totalTrackers = userApps.flatMap { it.trackers }.map { it.name }.distinct().size
+
+                val summary = generateSummary(privacyScore, appsWithTrackers, userApps.size)
                 val recentChanges = repository.getRecentChanges(10)
 
                 _state.value = DashboardState(
                     isLoading = false,
                     privacyScore = privacyScore,
+                    summary = summary,
                     userAppCount = userApps.size,
-                    systemAppCount = systemApps.size,
                     totalPermissions = totalPermissions,
+                    appsWithTrackers = appsWithTrackers,
+                    totalTrackers = totalTrackers,
                     topRiskyApps = userApps.take(5),
                     permissionGroupCounts = groupCounts,
+                    companyOverviews = companyOverviews,
                     recentChanges = recentChanges
                 )
             } catch (e: Exception) {
@@ -83,6 +88,15 @@ class DashboardViewModel @Inject constructor(
                     error = "Failed to scan apps: ${e.message}"
                 )
             }
+        }
+    }
+
+    private fun generateSummary(score: PrivacyScore, appsWithTrackers: Int, totalApps: Int): String {
+        return when {
+            score.total >= 80 -> "Your phone is well-protected. Keep it up."
+            score.total >= 60 -> "Good standing, but some apps have more access than they need."
+            score.total >= 40 -> "Several apps have risky access. Review the breakdowns below."
+            else -> "Your privacy needs attention — multiple apps have invasive access."
         }
     }
 }

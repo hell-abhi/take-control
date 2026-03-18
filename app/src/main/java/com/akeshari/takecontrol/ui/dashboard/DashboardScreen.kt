@@ -12,17 +12,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material.icons.outlined.ArrowForward
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.KeyboardArrowUp
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,11 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.akeshari.takecontrol.data.database.entity.PermissionChangeEntity
-import com.akeshari.takecontrol.data.model.AppPermissionInfo
-import com.akeshari.takecontrol.data.model.PermissionGroup
-import com.akeshari.takecontrol.data.model.GroupBreakdown
-import com.akeshari.takecontrol.data.model.PrivacyScore
-import com.akeshari.takecontrol.data.model.RiskLevel
+import com.akeshari.takecontrol.data.model.*
 import com.akeshari.takecontrol.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -56,6 +46,7 @@ import java.util.Locale
 fun DashboardScreen(
     onViewAllApps: () -> Unit,
     onFixGroup: (String) -> Unit,
+    onNavigateToRadar: () -> Unit,
     onAppClick: (String) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
@@ -89,76 +80,59 @@ fun DashboardScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp)
             ) {
+                // 1. Dynamic summary
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Your privacy at a glance — higher score = better protected",
-                    style = MaterialTheme.typography.bodySmall,
+                    state.summary,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(12.dp))
 
-                // Privacy Score with breakdown
-                PrivacyScoreCard(
+                // 2. Composite Privacy Score
+                CompositeScoreCard(
                     privacyScore = state.privacyScore,
                     userAppCount = state.userAppCount,
-                    systemAppCount = state.systemAppCount,
                     totalPermissions = state.totalPermissions,
-                    onViewMatrix = onViewAllApps,
+                    appsWithTrackers = state.appsWithTrackers,
                     onFixGroup = onFixGroup
                 )
 
                 Spacer(Modifier.height(24.dp))
 
-                // Permission Groups Overview
-                Text(
-                    "Permission Overview",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.height(12.dp))
+                // 3. Permission Overview
+                SectionHeader("Permission Overview", "Tap to see which apps", onViewAllApps)
+                Spacer(Modifier.height(10.dp))
                 PermissionGroupGrid(state.permissionGroupCounts, onFixGroup)
 
                 Spacer(Modifier.height(24.dp))
 
-                // Top Risky Apps
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Highest Risk Apps",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    TextButton(onClick = onViewAllApps) {
-                        Text("View All")
-                        Icon(
-                            Icons.AutoMirrored.Outlined.ArrowForward,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                // 4. Tracking Overview
+                if (state.companyOverviews.isNotEmpty()) {
+                    SectionHeader("Tracking Overview", "${state.totalTrackers} trackers from ${state.companyOverviews.size} companies", onNavigateToRadar)
+                    Spacer(Modifier.height(10.dp))
+                    CompanyOverviewGrid(state.companyOverviews, onNavigateToRadar)
+                    Spacer(Modifier.height(24.dp))
                 }
+
+                // 5. Highest Risk Apps
+                SectionHeader("Highest Risk Apps", null, onViewAllApps)
                 Spacer(Modifier.height(8.dp))
                 state.topRiskyApps.forEach { app ->
                     RiskyAppCard(app = app, onClick = { onAppClick(app.packageName) })
                     Spacer(Modifier.height(8.dp))
                 }
 
-                // Recent Permission Changes (Feature 3)
+                // 6. Recent Permission Changes
                 if (state.recentChanges.isNotEmpty()) {
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(16.dp))
                     Text(
-                        "Recent Permission Changes",
+                        "Recent Changes",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(Modifier.height(8.dp))
-                    RecentChangesSection(
-                        changes = state.recentChanges,
-                        onAppClick = onAppClick
-                    )
+                    RecentChangesSection(state.recentChanges, onAppClick)
                 }
 
                 Spacer(Modifier.height(24.dp))
@@ -167,15 +141,36 @@ fun DashboardScreen(
     }
 }
 
-// ── Privacy Score Card with Breakdown ───────────────────────────────────────
+// ── Section Header ──────────────────────────────────────────────────────────
 
 @Composable
-private fun PrivacyScoreCard(
+private fun SectionHeader(title: String, subtitle: String?, onAction: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            subtitle?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        TextButton(onClick = onAction) {
+            Text("View All", fontSize = 12.sp)
+            Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, modifier = Modifier.size(14.dp))
+        }
+    }
+}
+
+// ── Composite Score Card ────────────────────────────────────────────────────
+
+@Composable
+private fun CompositeScoreCard(
     privacyScore: PrivacyScore,
     userAppCount: Int,
-    systemAppCount: Int,
     totalPermissions: Int,
-    onViewMatrix: () -> Unit,
+    appsWithTrackers: Int,
     onFixGroup: (String) -> Unit
 ) {
     val animatedScore by animateFloatAsState(
@@ -188,41 +183,33 @@ private fun PrivacyScoreCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
+            modifier = Modifier.fillMaxWidth().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Score arc
-            Box(contentAlignment = Alignment.Center) {
-                val scoreColor = when {
-                    privacyScore.total >= 75 -> RiskSafe
-                    privacyScore.total >= 50 -> RiskMedium
-                    privacyScore.total >= 25 -> RiskHigh
-                    else -> RiskCritical
-                }
+            val scoreColor = when {
+                privacyScore.total >= 75 -> RiskSafe
+                privacyScore.total >= 50 -> RiskMedium
+                privacyScore.total >= 25 -> RiskHigh
+                else -> RiskCritical
+            }
 
+            Box(contentAlignment = Alignment.Center) {
                 Canvas(modifier = Modifier.size(150.dp)) {
                     val strokeWidth = 18.dp.toPx()
                     drawArc(
                         color = Color.Gray.copy(alpha = 0.2f),
-                        startAngle = 135f,
-                        sweepAngle = 270f,
-                        useCenter = false,
+                        startAngle = 135f, sweepAngle = 270f, useCenter = false,
                         topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
                         size = Size(size.width - strokeWidth, size.height - strokeWidth),
                         style = Stroke(width = strokeWidth, cap = StrokeCap.Square)
                     )
                     drawArc(
                         color = scoreColor,
-                        startAngle = 135f,
-                        sweepAngle = 270f * (animatedScore / 100f),
-                        useCenter = false,
+                        startAngle = 135f, sweepAngle = 270f * (animatedScore / 100f), useCenter = false,
                         topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
                         size = Size(size.width - strokeWidth, size.height - strokeWidth),
                         style = Stroke(width = strokeWidth, cap = StrokeCap.Square)
@@ -231,7 +218,7 @@ private fun PrivacyScoreCard(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         "${animatedScore.toInt()}",
-                        fontSize = 52.sp,
+                        fontSize = 48.sp,
                         fontFamily = PressStart2P, fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -243,19 +230,32 @@ private fun PrivacyScoreCard(
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(14.dp))
 
+            // Sub-scores bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                StatItem(value = "$userAppCount", label = "Apps")
-                StatItem(value = "$totalPermissions", label = "Granted")
+                SubScoreChip("Permissions", privacyScore.permissionScore)
+                SubScoreChip("Trackers", privacyScore.trackerScore)
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
 
-            // "What's affecting your score" toggle
+            // Quick stats
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                QuickStat("$userAppCount", "Apps")
+                QuickStat("$totalPermissions", "Granted")
+                QuickStat("$appsWithTrackers", "Tracked")
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            // Score breakdown toggle
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -266,7 +266,7 @@ private fun PrivacyScoreCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    if (expanded) "Hide score breakdown" else "What's affecting your score?",
+                    if (expanded) "Hide breakdown" else "What's affecting your score?",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
@@ -274,33 +274,22 @@ private fun PrivacyScoreCard(
                 Spacer(Modifier.width(4.dp))
                 Icon(
                     if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
+                    null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)
                 )
             }
 
             // Breakdown
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically(),
-                exit = shrinkVertically()
-            ) {
+            AnimatedVisibility(visible = expanded, enter = expandVertically(), exit = shrinkVertically()) {
                 Column(modifier = Modifier.padding(top = 12.dp)) {
-                    // Explanation
                     Text(
-                        "Score = % of sensitive risk you've avoided",
+                        "Permission score = % of sensitive risk avoided. Tracker score = how few tracking SDKs your apps contain.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(12.dp))
 
-                    // Group breakdowns (things hurting your score)
                     privacyScore.groupBreakdowns.forEach { breakdown ->
-                        GroupBreakdownRow(
-                            breakdown = breakdown,
-                            onFix = { onFixGroup(breakdown.group.name) }
-                        )
+                        GroupBreakdownRow(breakdown, onFix = { onFixGroup(breakdown.group.name) })
                         Spacer(Modifier.height(6.dp))
                     }
 
@@ -312,15 +301,50 @@ private fun PrivacyScoreCard(
                         )
                     }
 
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(8.dp))
                     Text(
-                        "Each \"Fix\" shows which apps to revoke. Your score updates instantly.",
+                        "Each \"Fix\" shows which apps to revoke.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SubScoreChip(label: String, score: Int) {
+    val color = when {
+        score >= 75 -> RiskSafe
+        score >= 50 -> RiskMedium
+        score >= 25 -> RiskHigh
+        else -> RiskCritical
+    }
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(color.copy(alpha = 0.1f))
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.width(6.dp))
+        Text(
+            "$score",
+            fontFamily = JetBrainsMono,
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
+            color = color
+        )
+    }
+}
+
+@Composable
+private fun QuickStat(value: String, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, fontFamily = JetBrainsMono, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -332,7 +356,6 @@ private fun GroupBreakdownRow(breakdown: GroupBreakdown, onFix: () -> Unit) {
         RiskLevel.MEDIUM -> RiskMedium
         RiskLevel.LOW -> RiskLow
     }
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -341,41 +364,15 @@ private fun GroupBreakdownRow(breakdown: GroupBreakdown, onFix: () -> Unit) {
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Icon
-        Icon(
-            breakdown.group.icon,
-            contentDescription = null,
-            tint = riskColor,
-            modifier = Modifier.size(20.dp)
-        )
+        Icon(breakdown.group.icon, null, tint = riskColor, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(10.dp))
-
-        // Description
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                breakdown.group.label.replace("Your ", ""),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                "${breakdown.appsGranted} apps have access",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text(breakdown.group.label.replace("Your ", ""), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text("${breakdown.appsGranted} apps have access", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-
-        // Recoverable points
         if (breakdown.pointsRecoverable > 0) {
-            Text(
-                "+${breakdown.pointsRecoverable}",
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                color = RiskSafe,
-                modifier = Modifier.padding(end = 4.dp)
-            )
+            Text("+${breakdown.pointsRecoverable}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = RiskSafe, modifier = Modifier.padding(end = 4.dp))
         }
-
-        // Fix button
         Button(
             onClick = onFix,
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
@@ -388,98 +385,95 @@ private fun GroupBreakdownRow(breakdown: GroupBreakdown, onFix: () -> Unit) {
     }
 }
 
-// ── Stat / Group / App Cards ────────────────────────────────────────────────
-
-@Composable
-private fun StatItem(value: String, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            value,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            fontFamily = JetBrainsMono,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
+// ── Permission Overview ─────────────────────────────────────────────────────
 
 @Composable
 private fun PermissionGroupGrid(groupCounts: Map<PermissionGroup, Int>, onGroupClick: (String) -> Unit) {
     val groups = PermissionGroup.entries.filter { groupCounts.containsKey(it) }
-    // Groups that have columns in the matrix
     val matrixGroups = setOf(
         PermissionGroup.LOCATION, PermissionGroup.CAMERA, PermissionGroup.MICROPHONE,
         PermissionGroup.CONTACTS, PermissionGroup.STORAGE, PermissionGroup.SMS,
         PermissionGroup.PHONE, PermissionGroup.SENSORS
     )
-
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         items(groups) { group ->
-            PermissionGroupChip(
+            val riskColor = when (group.defaultRisk) {
+                RiskLevel.CRITICAL -> RiskCritical
+                RiskLevel.HIGH -> RiskHigh
+                RiskLevel.MEDIUM -> RiskMedium
+                RiskLevel.LOW -> RiskLow
+            }
+            OverviewChip(
                 icon = group.icon,
-                label = group.label,
-                count = groupCounts[group] ?: 0,
-                riskColor = when (group.defaultRisk) {
-                    RiskLevel.CRITICAL -> RiskCritical
-                    RiskLevel.HIGH -> RiskHigh
-                    RiskLevel.MEDIUM -> RiskMedium
-                    RiskLevel.LOW -> RiskLow
-                },
+                label = group.label.replace("Your ", ""),
+                count = "${groupCounts[group] ?: 0} apps",
+                color = riskColor,
                 onClick = if (group in matrixGroups) {{ onGroupClick(group.name) }} else null
             )
         }
     }
 }
 
+// ── Tracking Overview ───────────────────────────────────────────────────────
+
 @Composable
-private fun PermissionGroupChip(
+private fun CompanyOverviewGrid(companies: List<CompanyOverview>, onNavigateToRadar: () -> Unit) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        items(companies) { company ->
+            val color = when {
+                company.appCount > 10 -> RiskCritical
+                company.appCount > 5 -> RiskHigh
+                company.appCount > 2 -> RiskMedium
+                else -> RiskLow
+            }
+            OverviewChip(
+                icon = Icons.Outlined.Visibility,
+                label = company.companyName,
+                count = "${company.appCount} apps",
+                color = color,
+                onClick = onNavigateToRadar
+            )
+        }
+    }
+}
+
+// ── Shared Chip ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun OverviewChip(
     icon: ImageVector,
     label: String,
-    count: Int,
-    riskColor: Color,
+    count: String,
+    color: Color,
     onClick: (() -> Unit)?
 ) {
     Card(
         onClick = onClick ?: {},
         enabled = onClick != null,
         shape = RoundedCornerShape(6.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(14.dp).widthIn(min = 80.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(40.dp)
                     .clip(RoundedCornerShape(6.dp))
-                    .background(riskColor.copy(alpha = 0.15f)),
+                    .background(color.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = riskColor, modifier = Modifier.size(22.dp))
+                Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
             }
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "$count apps",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                fontFamily = JetBrainsMono
-            )
-            Text(
-                label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Spacer(Modifier.height(6.dp))
+            Text(count, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, fontFamily = JetBrainsMono)
+            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
+
+// ── Risky App Card ──────────────────────────────────────────────────────────
 
 @Composable
 private fun RiskyAppCard(app: AppPermissionInfo, onClick: () -> Unit) {
@@ -489,148 +483,68 @@ private fun RiskyAppCard(app: AppPermissionInfo, onClick: () -> Unit) {
         app.riskScore >= 25 -> RiskMedium
         else -> RiskLow
     }
-
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(6.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(riskColor.copy(alpha = 0.15f)),
+                modifier = Modifier.size(46.dp).clip(RoundedCornerShape(6.dp)).background(riskColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    "${app.riskScore}",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    fontFamily = JetBrainsMono,
-                    color = riskColor
-                )
+                Text("${app.riskScore}", fontWeight = FontWeight.Bold, fontSize = 16.sp, fontFamily = JetBrainsMono, color = riskColor)
             }
-
-            Spacer(Modifier.width(14.dp))
-
+            Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
+                Text(app.appName, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                val trackerText = if (app.trackers.isNotEmpty()) " · ${app.trackers.size} trackers" else ""
                 Text(
-                    app.appName,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    "${app.permissions.count { it.isGranted }} permissions granted",
+                    "${app.permissions.count { it.isGranted }} permissions$trackerText",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.height(6.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(riskColor.copy(alpha = 0.15f))
-                ) {
-                    val granted = app.permissions.count { it.isGranted }
-                    val total = app.permissions.size
-                    val fraction = if (total > 0) granted.toFloat() / total else 0f
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .fillMaxWidth(fraction)
-                            .background(riskColor)
-                    )
-                }
             }
-
-            Icon(
-                Icons.AutoMirrored.Outlined.ArrowForward,
-                contentDescription = "View details",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp)
-            )
+            Icon(Icons.AutoMirrored.Outlined.ArrowForward, "View details", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
         }
     }
 }
 
-// ── Recent Permission Changes (Feature 3) ───────────────────────────────────
+// ── Recent Changes ──────────────────────────────────────────────────────────
 
 @Composable
-private fun RecentChangesSection(
-    changes: List<PermissionChangeEntity>,
-    onAppClick: (String) -> Unit
-) {
+private fun RecentChangesSection(changes: List<PermissionChangeEntity>, onAppClick: (String) -> Unit) {
     val dateFormat = remember { SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()) }
-
     Card(
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
             changes.forEach { change ->
                 val isGranted = change.isNowGranted
                 val changeColor = if (isGranted) RiskHigh else RiskSafe
-                val verb = if (isGranted) "gained" else "lost"
-
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(6.dp))
                         .clickable { onAppClick(change.packageName) }
-                        .padding(vertical = 6.dp, horizontal = 4.dp),
+                        .padding(vertical = 5.dp, horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(changeColor)
-                    )
+                    Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(changeColor))
                     Spacer(Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            "${change.appName} $verb ${change.permissionLabel}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            "${change.appName} ${if (isGranted) "gained" else "lost"} ${change.permissionLabel}",
+                            style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis
                         )
-                        Text(
-                            dateFormat.format(Date(change.detectedAt)),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Text(dateFormat.format(Date(change.detectedAt)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(changeColor.copy(alpha = 0.15f))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                        modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(changeColor.copy(alpha = 0.15f)).padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
-                        Text(
-                            if (isGranted) "Granted" else "Revoked",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = changeColor,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Text(if (isGranted) "Granted" else "Revoked", style = MaterialTheme.typography.labelSmall, color = changeColor, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }

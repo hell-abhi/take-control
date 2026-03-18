@@ -146,6 +146,15 @@ fun TakeControlNavHost() {
                             launchSingleTop = true
                         }
                     },
+                    onNavigateToRadar = {
+                        navController.navigate(Routes.THREATS) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                     onAppClick = { packageName ->
                         navController.navigate(Routes.appDetail(packageName))
                     }
