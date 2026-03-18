@@ -1,6 +1,5 @@
 package com.akeshari.takecontrol.ui.appdetail
 
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -231,98 +230,21 @@ private fun tryStartActivity(context: Context, vararg intents: Intent): Boolean 
 private fun ActionPanel(packageName: String, isSystemApp: Boolean) {
     val context = LocalContext.current
 
-    Card(
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                "Take Action",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+    Button(
+        onClick = {
+            context.startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", packageName, null)
+                }
             )
-
-            // Manage Permissions — full width
-            Button(
-                onClick = {
-                    context.startActivity(
-                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.fromParts("package", packageName, null)
-                        }
-                    )
-                },
-                modifier = Modifier.fillMaxWidth().height(44.dp),
-                shape = RoundedCornerShape(6.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-            ) {
-                Icon(Icons.Outlined.Shield, null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Manage Permissions", fontWeight = FontWeight.SemiBold)
-            }
-
-            // Restrict + Uninstall side by side
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Restrict Background
-                OutlinedButton(
-                    onClick = {
-                        val launched = tryStartActivity(context,
-                            Intent().apply {
-                                component = ComponentName(
-                                    "com.android.settings",
-                                    "com.android.settings.Settings\$AppBatteryUsageActivity"
-                                )
-                                putExtra("android.provider.extra.APP_PACKAGE", packageName)
-                            },
-                            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                        )
-                        if (!launched) {
-                            context.startActivity(
-                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                    data = Uri.fromParts("package", packageName, null)
-                                }
-                            )
-                        }
-                    },
-                    modifier = Modifier.weight(1f).height(44.dp),
-                    shape = RoundedCornerShape(6.dp)
-                ) {
-                    Icon(Icons.Outlined.BatteryAlert, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Restrict", fontWeight = FontWeight.SemiBold)
-                }
-
-                // Uninstall (not for system apps) — opens app info where system Uninstall button is
-                if (!isSystemApp) {
-                    Button(
-                        onClick = {
-                            context.startActivity(
-                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                    data = Uri.fromParts("package", packageName, null)
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                            )
-                        },
-                        modifier = Modifier.weight(1f).height(44.dp),
-                        shape = RoundedCornerShape(6.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = RiskCritical)
-                    ) {
-                        Icon(Icons.Outlined.Delete, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Uninstall", fontWeight = FontWeight.SemiBold, color = Color.White)
-                    }
-                }
-            }
-        }
+        },
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+    ) {
+        Icon(Icons.Outlined.Settings, null, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(8.dp))
+        Text("Open App Settings", fontWeight = FontWeight.SemiBold)
     }
 }
 
