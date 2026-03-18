@@ -1,5 +1,7 @@
 package com.akeshari.takecontrol.ui.appdetail
 
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -207,6 +209,20 @@ private fun NarrativeCard(narratives: List<String>) {
     }
 }
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+private fun tryStartActivity(context: Context, vararg intents: Intent): Boolean {
+    for (intent in intents) {
+        try {
+            context.startActivity(intent)
+            return true
+        } catch (_: Exception) {
+            continue
+        }
+    }
+    return false
+}
+
 // ── Take Action Panel (Feature 1) ───────────────────────────────────────────
 
 @Composable
@@ -256,18 +272,30 @@ private fun ActionPanel(packageName: String, isSystemApp: Boolean) {
                 // Restrict Background
                 OutlinedButton(
                     onClick = {
-                        try {
-                            // Try app-specific battery usage settings (Android 12+, Samsung, etc.)
-                            val intent = Intent("android.settings.APP_BATTERY_SETTINGS").apply {
+                        // Try multiple approaches to open app-specific battery settings
+                        val launched = tryStartActivity(context,
+                            // 1. Direct component (works on Samsung, AOSP 12+)
+                            Intent().apply {
+                                component = ComponentName(
+                                    "com.android.settings",
+                                    "com.android.settings.Settings\$AppBatteryUsageActivity"
+                                )
+                                putExtra("android.provider.extra.APP_PACKAGE", packageName)
+                            },
+                            // 2. Standard app battery settings action
+                            Intent("android.settings.APP_BATTERY_SETTINGS").apply {
                                 data = Uri.fromParts("package", packageName, null)
-                            }
-                            context.startActivity(intent)
-                        } catch (_: Exception) {
-                            // Fallback: open the app's own settings page (battery section accessible there)
-                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                data = Uri.fromParts("package", packageName, null)
-                            }
-                            context.startActivity(intent)
+                            },
+                            // 3. Fallback: general battery optimization list
+                            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                        )
+                        if (!launched) {
+                            // Last resort: app info page
+                            context.startActivity(
+                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.fromParts("package", packageName, null)
+                                }
+                            )
                         }
                     },
                     modifier = Modifier.weight(1f),
@@ -283,8 +311,9 @@ private fun ActionPanel(packageName: String, isSystemApp: Boolean) {
                 if (!isSystemApp) {
                     Button(
                         onClick = {
-                            val intent = Intent(Intent.ACTION_UNINSTALL_PACKAGE).apply {
-                                data = Uri.fromParts("package", packageName, null)
+                            val intent = Intent(Intent.ACTION_DELETE).apply {
+                                data = Uri.parse("package:$packageName")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             }
                             context.startActivity(intent)
                         },
