@@ -11,6 +11,7 @@ import com.akeshari.takecontrol.data.scanner.DataSafetyInfo
 import com.akeshari.takecontrol.data.scanner.PlayStoreAnalyzer
 import com.akeshari.takecontrol.data.scanner.PlayStorePermissionGroup
 import com.akeshari.takecontrol.data.scanner.PlayStoreReport
+import com.akeshari.takecontrol.data.scanner.PrivacyDbClient
 import com.akeshari.takecontrol.util.PrivacyNarrativeGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -20,7 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-enum class AnalysisSource { LOCAL, PLAY_STORE }
+enum class AnalysisSource { LOCAL, PRIVACY_DB, PLAY_STORE }
 
 data class PermissionRisk(
     val name: String,
@@ -50,7 +51,8 @@ data class PreInstallState(
 class PreInstallCheckViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repository: AppRepository,
-    private val playStoreAnalyzer: PlayStoreAnalyzer
+    private val playStoreAnalyzer: PlayStoreAnalyzer,
+    private val privacyDbClient: PrivacyDbClient
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PreInstallState())
@@ -75,11 +77,16 @@ class PreInstallCheckViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null, localApp = null, playStoreReport = null)
 
-            // Check if installed locally first
+            // Priority: 1. Local (installed) → 2. Privacy DB → 3. Play Store scraping
             if (isInstalled(packageName)) {
                 analyzeLocal(packageName)
             } else {
-                analyzeFromPlayStore(packageName)
+                val dbReport = privacyDbClient.fetch(packageName)
+                if (dbReport != null) {
+                    analyzeFromPrivacyDb(dbReport)
+                } else {
+                    analyzeFromPlayStore(packageName)
+                }
             }
         }
     }
@@ -111,6 +118,37 @@ class PreInstallCheckViewModel @Inject constructor(
         } catch (e: Exception) {
             analyzeFromPlayStore(packageName)
         }
+    }
+
+    private fun analyzeFromPrivacyDb(report: com.akeshari.takecontrol.data.scanner.PrivacyDbReport) {
+        val risks = classifyPlayStorePermissions(report.permissionGroups)
+        val narratives = generateNarrativesFromGroups(report.permissionGroups)
+        val criticalCount = risks.count { it.riskLevel == RiskLevel.CRITICAL }
+        val highCount = risks.count { it.riskLevel == RiskLevel.HIGH }
+        val (verdict, level) = computeVerdict(criticalCount, highCount, 0)
+
+        // Convert to PlayStoreReport for UI reuse
+        val playReport = PlayStoreReport(
+            appName = report.appName,
+            packageName = report.packageName,
+            category = report.category,
+            rating = report.rating,
+            downloads = report.downloads,
+            permissionGroups = report.permissionGroups,
+            dataSafety = report.dataSafety
+        )
+
+        _state.value = _state.value.copy(
+            isLoading = false,
+            appName = report.appName,
+            packageName = report.packageName,
+            source = AnalysisSource.PRIVACY_DB,
+            playStoreReport = playReport,
+            permissionRisks = risks,
+            narratives = narratives,
+            verdict = verdict,
+            verdictLevel = level
+        )
     }
 
     private suspend fun analyzeFromPlayStore(packageName: String) {

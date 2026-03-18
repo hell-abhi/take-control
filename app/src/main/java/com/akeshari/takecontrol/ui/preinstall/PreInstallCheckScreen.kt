@@ -168,18 +168,20 @@ fun PreInstallCheckScreen(
                     }
                 }
 
-                // Source attribution
+                // Source attribution + contribute
                 item {
                     val sourceText = when (state.source) {
                         AnalysisSource.LOCAL -> "Analyzed from your installed app"
+                        AnalysisSource.PRIVACY_DB -> "Data from Privacy DB (community-maintained)"
                         AnalysisSource.PLAY_STORE -> "Data from Google Play Store listing"
                         else -> ""
                     }
-                    Text(
-                        sourceText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text(sourceText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                    if (state.source == AnalysisSource.PRIVACY_DB || state.source == AnalysisSource.PLAY_STORE) {
+                        Spacer(Modifier.height(10.dp))
+                        ContributeCard()
+                    }
                 }
             }
         }
@@ -520,6 +522,45 @@ private fun ActionRow(packageName: String, isInstalled: Boolean) {
                 Icon(Icons.Outlined.OpenInNew, null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
                 Text("View on Play Store", fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+// ── Contribute Card ─────────────────────────────────────────────────────────
+
+@Composable
+private fun ContributeCard() {
+    val context = LocalContext.current
+    Card(
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
+    ) {
+        Column(Modifier.fillMaxWidth().padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.Code, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Privacy DB — Open Source", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "App lookup data is powered by Privacy DB, a community-maintained database of app permissions. You can contribute by submitting Play Store links for apps not yet scanned.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 16.sp
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/hell-abhi/privacy-db")))
+                },
+                modifier = Modifier.fillMaxWidth().height(34.dp),
+                shape = RoundedCornerShape(6.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp)
+            ) {
+                Icon(Icons.Outlined.OpenInNew, null, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Contribute on GitHub", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }
