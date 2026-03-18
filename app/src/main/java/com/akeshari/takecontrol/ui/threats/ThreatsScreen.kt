@@ -2,6 +2,8 @@ package com.akeshari.takecontrol.ui.threats
 
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
@@ -40,6 +42,8 @@ fun ThreatsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
+    var companyReachY by remember { mutableIntStateOf(0) }
+    var hasScrolled by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -77,11 +81,11 @@ fun ThreatsScreen(
             return@Scaffold
         }
 
-        // Auto-scroll to Company Reach when navigated with a company param
-        LaunchedEffect(scrollToCompany, state.isLoading) {
-            if (scrollToCompany != null && !state.isLoading && state.companyExposures.isNotEmpty()) {
-                // Scroll far enough to show the Company Reach section
-                scrollState.animateScrollTo(scrollState.maxValue)
+        // Auto-scroll to Company Reach when position is known
+        LaunchedEffect(companyReachY, hasScrolled) {
+            if (scrollToCompany != null && companyReachY > 0 && !hasScrolled) {
+                hasScrolled = true
+                scrollState.animateScrollTo(companyReachY)
             }
         }
 
@@ -151,7 +155,14 @@ fun ThreatsScreen(
             Spacer(Modifier.height(24.dp))
 
             // Company exposure cards
-            Text("Company Reach", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(
+                "Company Reach",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.onGloballyPositioned { coords ->
+                    companyReachY = coords.positionInParent().y.toInt()
+                }
+            )
             Spacer(Modifier.height(4.dp))
             Text(
                 "Each company's tracker footprint on your device",
