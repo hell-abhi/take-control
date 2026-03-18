@@ -94,21 +94,19 @@ fun AppDetailScreen(
                 }
             }
 
-            // Take Action panel (Feature 1)
-            item {
-                ActionPanel(
-                    packageName = packageName,
-                    isSystemApp = app.isSystemApp
-                )
-            }
-
-            // (uninstall is inside ActionPanel)
-
             // Trackers (Feature 4)
             if (app.trackers.isNotEmpty()) {
                 item {
                     TrackerCard(trackers = app.trackers)
                 }
+            }
+
+            // Take Action
+            item {
+                ActionPanel(
+                    packageName = packageName,
+                    isSystemApp = app.isSystemApp
+                )
             }
 
             // Alternative apps (Feature 1)
