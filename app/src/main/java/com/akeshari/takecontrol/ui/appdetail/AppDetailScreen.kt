@@ -5,8 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
-import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -303,15 +301,16 @@ private fun ActionPanel(packageName: String, isSystemApp: Boolean) {
                     Text("Restrict", fontWeight = FontWeight.SemiBold)
                 }
 
-                // Uninstall (not for system apps)
+                // Uninstall (not for system apps) — opens app info where system Uninstall button is
                 if (!isSystemApp) {
                     Button(
                         onClick = {
-                            val intent = Intent(Intent.ACTION_DELETE).apply {
-                                data = Uri.parse("package:$packageName")
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                            }
-                            context.startActivity(intent)
+                            context.startActivity(
+                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.fromParts("package", packageName, null)
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                            )
                         },
                         modifier = Modifier.weight(1f).height(44.dp),
                         shape = RoundedCornerShape(6.dp),
