@@ -2,6 +2,7 @@ package com.akeshari.takecontrol.ui.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.akeshari.takecontrol.data.database.entity.PermissionChangeEntity
 import com.akeshari.takecontrol.data.model.AppPermissionInfo
 import com.akeshari.takecontrol.data.model.PermissionGroup
 import com.akeshari.takecontrol.data.model.PrivacyScore
@@ -22,6 +23,7 @@ data class DashboardState(
     val totalPermissions: Int = 0,
     val topRiskyApps: List<AppPermissionInfo> = emptyList(),
     val permissionGroupCounts: Map<PermissionGroup, Int> = emptyMap(),
+    val recentChanges: List<PermissionChangeEntity> = emptyList(),
     val error: String? = null
 )
 
@@ -61,6 +63,8 @@ class DashboardViewModel @Inject constructor(
                     .groupBy { it.group }
                     .mapValues { it.value.size }
 
+                val recentChanges = repository.getRecentChanges(10)
+
                 _state.value = DashboardState(
                     isLoading = false,
                     privacyScore = privacyScore,
@@ -68,7 +72,8 @@ class DashboardViewModel @Inject constructor(
                     systemAppCount = systemApps.size,
                     totalPermissions = totalPermissions,
                     topRiskyApps = userApps.take(5),
-                    permissionGroupCounts = groupCounts
+                    permissionGroupCounts = groupCounts,
+                    recentChanges = recentChanges
                 )
             } catch (e: Exception) {
                 _state.value = _state.value.copy(

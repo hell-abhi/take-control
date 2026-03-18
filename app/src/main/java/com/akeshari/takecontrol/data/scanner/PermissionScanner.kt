@@ -17,7 +17,8 @@ import javax.inject.Singleton
 @Singleton
 class PermissionScanner @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val classifier: PermissionClassifier
+    private val classifier: PermissionClassifier,
+    private val trackerScanner: TrackerScanner
 ) {
     private val packageManager: PackageManager = context.packageManager
 
@@ -52,6 +53,7 @@ class PermissionScanner @Inject constructor(
             classifier.classify(requestedPermissions[i], isGranted, category)
         }
 
+        val trackers = trackerScanner.detectTrackers(packageInfo.packageName)
         val riskScore = calculateRiskScore(permissions)
 
         return AppPermissionInfo(
@@ -61,7 +63,8 @@ class PermissionScanner @Inject constructor(
             isSystemApp = isSystemApp(packageInfo),
             permissions = permissions,
             riskScore = riskScore,
-            category = category
+            category = category,
+            trackers = trackers
         )
     }
 

@@ -9,7 +9,8 @@ data class AppPermissionInfo(
     val isSystemApp: Boolean,
     val permissions: List<PermissionDetail>,
     val riskScore: Int, // 0-100
-    val category: AppCategory = AppCategory.OTHER
+    val category: AppCategory = AppCategory.OTHER,
+    val trackers: List<TrackerInfo> = emptyList()
 )
 
 data class PermissionDetail(

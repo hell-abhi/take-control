@@ -40,12 +40,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.akeshari.takecontrol.data.database.entity.PermissionChangeEntity
 import com.akeshari.takecontrol.data.model.AppPermissionInfo
 import com.akeshari.takecontrol.data.model.PermissionGroup
 import com.akeshari.takecontrol.data.model.GroupBreakdown
 import com.akeshari.takecontrol.data.model.PrivacyScore
 import com.akeshari.takecontrol.data.model.RiskLevel
 import com.akeshari.takecontrol.ui.theme.*
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -145,6 +149,21 @@ fun DashboardScreen(
                 state.topRiskyApps.forEach { app ->
                     RiskyAppCard(app = app, onClick = { onAppClick(app.packageName) })
                     Spacer(Modifier.height(8.dp))
+                }
+
+                // Recent Permission Changes (Feature 3)
+                if (state.recentChanges.isNotEmpty()) {
+                    Spacer(Modifier.height(24.dp))
+                    Text(
+                        "Recent Permission Changes",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    RecentChangesSection(
+                        changes = state.recentChanges,
+                        onAppClick = onAppClick
+                    )
                 }
 
                 Spacer(Modifier.height(24.dp))
@@ -538,6 +557,79 @@ private fun RiskyAppCard(app: AppPermissionInfo, onClick: () -> Unit) {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp)
             )
+        }
+    }
+}
+
+// ── Recent Permission Changes (Feature 3) ───────────────────────────────────
+
+@Composable
+private fun RecentChangesSection(
+    changes: List<PermissionChangeEntity>,
+    onAppClick: (String) -> Unit
+) {
+    val dateFormat = remember { SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()) }
+
+    Card(
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            changes.forEach { change ->
+                val isGranted = change.isNowGranted
+                val changeColor = if (isGranted) RiskHigh else RiskSafe
+                val verb = if (isGranted) "gained" else "lost"
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { onAppClick(change.packageName) }
+                        .padding(vertical = 6.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(changeColor)
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "${change.appName} $verb ${change.permissionLabel}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            dateFormat.format(Date(change.detectedAt)),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(changeColor.copy(alpha = 0.15f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            if (isGranted) "Granted" else "Revoked",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = changeColor,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
         }
     }
 }
