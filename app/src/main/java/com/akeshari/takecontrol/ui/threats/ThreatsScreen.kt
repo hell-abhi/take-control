@@ -4,6 +4,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
+import kotlinx.coroutines.delay
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
@@ -81,11 +82,18 @@ fun ThreatsScreen(
             return@Scaffold
         }
 
-        // Auto-scroll to Company Reach when position is known
-        LaunchedEffect(companyReachY, hasScrolled) {
-            if (scrollToCompany != null && companyReachY > 0 && !hasScrolled) {
+        // Auto-scroll to Company Reach after layout settles
+        LaunchedEffect(scrollToCompany, state.isLoading) {
+            if (scrollToCompany != null && !state.isLoading && !hasScrolled) {
+                // Wait for Compose to lay out the full content
+                delay(500)
                 hasScrolled = true
-                scrollState.animateScrollTo(companyReachY)
+                if (companyReachY > 0) {
+                    scrollState.animateScrollTo(companyReachY)
+                } else {
+                    // Fallback: scroll to end where Company Reach lives
+                    scrollState.animateScrollTo(scrollState.maxValue)
+                }
             }
         }
 
