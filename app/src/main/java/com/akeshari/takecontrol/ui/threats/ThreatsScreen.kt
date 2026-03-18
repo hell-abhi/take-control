@@ -7,6 +7,7 @@ import androidx.compose.ui.layout.positionInParent
 import kotlinx.coroutines.delay
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -46,44 +47,37 @@ fun ThreatsScreen(
     var companyReachY by remember { mutableIntStateOf(0) }
     var hasScrolled by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Tracker Radar", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 13.sp) }
-            )
-        }
-    ) { padding ->
-        if (state.isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.height(16.dp))
-                    Text("Analyzing tracker ecosystem...", style = MaterialTheme.typography.bodyMedium)
-                }
+    if (state.isLoading) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(16.dp))
+                Text("Analyzing tracker ecosystem...", style = MaterialTheme.typography.bodyMedium)
             }
-            return@Scaffold
         }
+        return
+    }
 
-        if (state.companyExposures.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
-                    Icon(Icons.Outlined.VerifiedUser, null, tint = RiskSafe, modifier = Modifier.size(48.dp))
-                    Spacer(Modifier.height(16.dp))
-                    Text("No Trackers Detected", fontFamily = PressStart2P, fontSize = 12.sp, color = RiskSafe)
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "None of your installed apps contain known tracking SDKs",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                }
+    if (state.companyExposures.isEmpty()) {
+        Box(Modifier.fillMaxSize().statusBarsPadding(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
+                Icon(Icons.Outlined.VerifiedUser, null, tint = RiskSafe, modifier = Modifier.size(48.dp))
+                Spacer(Modifier.height(16.dp))
+                Text("No Trackers Detected", fontFamily = PressStart2P, fontSize = 12.sp, color = RiskSafe)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "None of your installed apps contain known tracking SDKs",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
             }
-            return@Scaffold
         }
+        return
+    }
 
-        // Auto-scroll to Company Reach after layout settles
-        LaunchedEffect(scrollToCompany, state.isLoading) {
+    // Auto-scroll to Company Reach after layout settles
+    LaunchedEffect(scrollToCompany, state.isLoading) {
             if (scrollToCompany != null && !state.isLoading && !hasScrolled) {
                 // Wait for Compose to lay out the full content
                 delay(500)
@@ -97,14 +91,20 @@ fun ThreatsScreen(
             }
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp)
-        ) {
-            Spacer(Modifier.height(4.dp))
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(horizontal = 20.dp)
+            .statusBarsPadding()
+    ) {
+        // Compact header
+        Spacer(Modifier.height(12.dp))
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Tracker Radar", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.weight(1f))
+            Text("${state.totalCompanies} companies", style = MaterialTheme.typography.labelMedium, color = RiskCritical, fontWeight = FontWeight.SemiBold)
+        }
+        Spacer(Modifier.height(12.dp))
 
             // Explainer card
             ExplainerCard(
@@ -205,8 +205,7 @@ fun ThreatsScreen(
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
-        }
+        Spacer(Modifier.height(24.dp))
     }
 }
 

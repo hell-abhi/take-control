@@ -8,6 +8,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -92,26 +93,24 @@ fun PermissionMatrixScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Permission Matrix", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 13.sp) },
-                actions = {
-                    IconButton(onClick = { showLegend = !showLegend }) {
-                        Icon(Icons.Outlined.Info, "Legend")
-                    }
-                    IconButton(onClick = { showFilters = !showFilters }) {
-                        Icon(Icons.Outlined.FilterList, "Filters")
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+    ) {
+        // Compact header with actions
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Text("Permission Matrix", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            IconButton(onClick = { showLegend = !showLegend }) {
+                Icon(Icons.Outlined.Info, "Legend", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            IconButton(onClick = { showFilters = !showFilters }) {
+                Icon(Icons.Outlined.FilterList, "Filters", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
             // Explainer
             ExplainerCard(
                 title = "How to read the permission matrix",
@@ -202,7 +201,6 @@ fun PermissionMatrixScreen(
             }
         }
     }
-}
 
 // ── Permission Detail Bottom Sheet ──────────────────────────────────────────
 
