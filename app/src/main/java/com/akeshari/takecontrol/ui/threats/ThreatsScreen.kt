@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.akeshari.takecontrol.data.model.*
+import com.akeshari.takecontrol.ui.common.ExplainerCard
+import com.akeshari.takecontrol.ui.common.ExplainerSection
 import com.akeshari.takecontrol.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,32 +84,23 @@ fun ThreatsScreen(
             Spacer(Modifier.height(4.dp))
 
             // Explainer card
-            Card(
-                shape = RoundedCornerShape(8.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                    Text(
-                        "What are trackers?",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
+            ExplainerCard(
+                title = "What are trackers and SDKs?",
+                sections = listOf(
+                    ExplainerSection(
+                        "Hidden code inside apps.",
+                        "Trackers are software libraries (SDKs) that companies like Google, Meta, and ad networks embed inside apps. They run silently in the background."
+                    ),
+                    ExplainerSection(
+                        "They watch across apps.",
+                        "Even if you never use Facebook, their SDK inside other apps can monitor your activity, build a profile, and share it with advertisers — without your knowledge."
+                    ),
+                    ExplainerSection(
+                        "This screen shows the full picture.",
+                        "We scan your installed apps for 40+ known tracking SDKs and map which companies see your data, through which apps, and what permissions they can access."
                     )
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        "Trackers are hidden software libraries (SDKs) that companies like Google, Meta, and others embed inside apps. Even if you never use Facebook directly, their SDK inside other apps can monitor your activity, build a profile on you, and share data with advertisers — all without your knowledge.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 18.sp
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "This screen scans your installed apps for known tracking SDKs and shows which companies can see your data, through which apps, and what they can access.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 18.sp
-                    )
-                }
-            }
+                )
+            )
 
             Spacer(Modifier.height(16.dp))
 

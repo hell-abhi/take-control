@@ -40,6 +40,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.akeshari.takecontrol.data.model.AppPermissionInfo
 import com.akeshari.takecontrol.data.model.PermissionGroup
 import com.akeshari.takecontrol.data.model.RiskLevel
+import com.akeshari.takecontrol.ui.common.ExplainerCard
+import com.akeshari.takecontrol.ui.common.ExplainerSection
 import com.akeshari.takecontrol.ui.theme.*
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.launch
@@ -110,11 +112,23 @@ fun PermissionMatrixScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Purpose text
-            Text(
-                "Every dot = a permission an app has. Tap any column or app to explore.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // Explainer
+            ExplainerCard(
+                title = "How to read the permission matrix",
+                sections = listOf(
+                    ExplainerSection(
+                        "Rows = apps, columns = permissions.",
+                        "Each row is an installed app. Each column is a sensitive permission type like Camera, Location, or Microphone."
+                    ),
+                    ExplainerSection(
+                        "Colored dots = granted access.",
+                        "Red and orange dots mean an app has been granted that permission. Green dots are lower risk. No dot means the app doesn't use that permission."
+                    ),
+                    ExplainerSection(
+                        "Tap to explore.",
+                        "Tap any column header to see which apps have that permission. Tap any app row to see its full privacy breakdown, trackers, and take action."
+                    )
+                ),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
             )
 

@@ -28,6 +28,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.akeshari.takecontrol.data.model.RiskLevel
 import com.akeshari.takecontrol.data.scanner.PlayStorePermissionGroup
+import com.akeshari.takecontrol.ui.common.ExplainerCard
+import com.akeshari.takecontrol.ui.common.ExplainerSection
 import com.akeshari.takecontrol.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -171,12 +173,24 @@ fun PreInstallCheckScreen(
 @Composable
 private fun SearchSection(state: PreInstallState, viewModel: PreInstallCheckViewModel) {
     Column {
-        Text(
-            "Investigate any app — see its permissions and data practices before you install",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        ExplainerCard(
+            title = "How App Lookup works",
+            sections = listOf(
+                ExplainerSection(
+                    "Check before you install.",
+                    "Enter a package name or paste a Google Play Store link to see what an app requests before you install it."
+                ),
+                ExplainerSection(
+                    "For installed apps,",
+                    "we run a full local scan — permissions, risk scores, and embedded tracker SDKs — all on your device."
+                ),
+                ExplainerSection(
+                    "For apps not on your phone,",
+                    "we fetch the public Play Store listing to show permissions, data safety practices (what data is shared or collected), and an overall risk verdict."
+                )
+            )
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(12.dp))
         OutlinedTextField(
             value = state.query,
             onValueChange = { viewModel.updateQuery(it) },
