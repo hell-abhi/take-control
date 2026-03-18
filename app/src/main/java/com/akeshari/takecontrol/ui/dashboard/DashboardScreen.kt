@@ -87,9 +87,18 @@ fun DashboardScreen(
             ) {
                 Icon(Icons.Outlined.Lock, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.width(10.dp))
-                Text("Take Control", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
-                IconButton(onClick = { viewModel.refresh() }) {
-                    Icon(Icons.Outlined.Refresh, "Refresh", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Take Control", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Spacer(Modifier.weight(1f))
+                // Trust badges as subtle chips
+                Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(RiskSafe.copy(alpha = 0.08f)).padding(horizontal = 6.dp, vertical = 2.dp)) {
+                    Text("Local", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = RiskSafe)
+                }
+                Spacer(Modifier.width(4.dp))
+                Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(horizontal = 6.dp, vertical = 2.dp)) {
+                    Text("OSS", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                IconButton(onClick = { viewModel.refresh() }, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Outlined.Refresh, "Refresh", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -178,22 +187,9 @@ private fun CompactScoreCard(
                 }
             }
 
-            // Summary + trust badges
+            // Summary
             Spacer(Modifier.height(6.dp))
             Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(4.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.VerifiedUser, null, tint = RiskSafe, modifier = Modifier.size(12.dp))
-                    Spacer(Modifier.width(3.dp))
-                    Text("100% Local", style = MaterialTheme.typography.labelSmall, color = RiskSafe, fontSize = 10.sp)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.Code, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(12.dp))
-                    Spacer(Modifier.width(3.dp))
-                    Text("Open Source", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
-                }
-            }
 
             // Breakdown toggle
             Spacer(Modifier.height(4.dp))

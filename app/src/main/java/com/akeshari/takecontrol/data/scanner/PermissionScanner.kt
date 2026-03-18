@@ -48,9 +48,12 @@ class PermissionScanner @Inject constructor(
 
         val requestedPermissions = packageInfo.requestedPermissions ?: emptyArray()
         val requestedFlags = packageInfo.requestedPermissionsFlags ?: IntArray(requestedPermissions.size)
-        val permissions = requestedPermissions.indices.map { i ->
+        val permissions = requestedPermissions.indices.mapNotNull { i ->
+            val perm = requestedPermissions[i]
+            // Filter out custom/auto-generated junk permissions
+            if (shouldFilterPermission(perm)) return@mapNotNull null
             val isGranted = requestedFlags[i] and PackageInfo.REQUESTED_PERMISSION_GRANTED != 0
-            classifier.classify(requestedPermissions[i], isGranted, category)
+            classifier.classify(perm, isGranted, category)
         }
 
         val trackers = trackerScanner.detectTrackers(packageInfo.packageName)
@@ -148,6 +151,25 @@ class PermissionScanner @Inject constructor(
             .sumOf { it.riskLevel.weight }
         // Normalize to 0-100
         return (totalRisk * 100 / (permissions.size * 10)).coerceIn(0, 100)
+    }
+
+    private fun shouldFilterPermission(permission: String): Boolean {
+        // Filter auto-generated push token permissions, C2D_MESSAGE, app-specific custom permissions
+        val p = permission.uppercase()
+        if ("TOKEN" in p && !p.startsWith("ANDROID.PERMISSION")) return true
+        if ("C2D_MESSAGE" in p) return true
+        if ("DYNAMIC_RECEIVER_NOT_EXPORTED" in p) return true
+        // Only keep android.permission.*, com.google.android.*, and well-known prefixes
+        // Filter random app-specific permissions like com.someapp.permission.SOMETHING
+        if (!permission.startsWith("android.permission.") &&
+            !permission.startsWith("com.google.android.") &&
+            !permission.startsWith("com.samsung.") &&
+            permission.contains(".permission.")) {
+            // Keep if it's a known pattern we handle
+            val suffix = permission.substringAfterLast(".")
+            if (suffix.length > 30) return true // random hash/token strings
+        }
+        return false
     }
 
     private fun isSystemApp(packageInfo: PackageInfo): Boolean {

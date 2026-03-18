@@ -5,6 +5,7 @@ import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import com.akeshari.takecontrol.data.model.*
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -117,8 +118,8 @@ class ActivityMonitor @Inject constructor(
             val method = appOpsManager.javaClass.getMethod(
                 "getOpsForPackage", Int::class.javaPrimitiveType, String::class.java, Array<String>::class.java
             )
-            val pkgOpsList = method.invoke(appOpsManager, uid, packageName, arrayOf(opStr)) as? List<*>
-                ?: return Pair(0L, false)
+            val result = method.invoke(appOpsManager, uid, packageName, arrayOf(opStr))
+            val pkgOpsList = result as? List<*> ?: return Pair(0L, false)
 
             for (pkgOps in pkgOpsList) {
                 if (pkgOps == null) continue
@@ -156,7 +157,9 @@ class ActivityMonitor @Inject constructor(
                     } catch (_: Exception) {}
                 }
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.d("TakeControl", "AppOps reflection failed for $packageName/$opStr: ${e.message}")
+        }
 
         return Pair(0L, false)
     }
