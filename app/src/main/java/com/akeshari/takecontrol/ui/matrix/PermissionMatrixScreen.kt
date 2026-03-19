@@ -20,6 +20,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Warning
@@ -550,23 +552,87 @@ private fun LegendItem(color: Color, label: String, description: String) {
     }
 }
 
-// ── Filters ─────────────────────────────────────────────────────────────────
+// ── Grouped Filters ─────────────────────────────────────────────────────────
+
+private val APP_TYPE_FILTERS = listOf(AppFilter.USER_ONLY, AppFilter.SYSTEM_ONLY, AppFilter.ALL)
+private val RISK_FILTERS = listOf(AppFilter.HIGH_RISK, AppFilter.HIGH_TRACKERS)
+private val PERMISSION_FILTERS = listOf(
+    AppFilter.HAS_LOCATION, AppFilter.HAS_CAMERA, AppFilter.HAS_MIC,
+    AppFilter.HAS_CONTACTS, AppFilter.HAS_SMS, AppFilter.HAS_PHONE,
+    AppFilter.HAS_STORAGE, AppFilter.HAS_SENSORS
+)
 
 @Composable
 private fun FilterRow(selectedFilter: AppFilter, onFilterSelected: (AppFilter) -> Unit) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .horizontalScroll(rememberScrollState()),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        AppFilter.entries.forEach { filter ->
-            FilterChip(
-                selected = selectedFilter == filter,
-                onClick = { onFilterSelected(filter) },
-                label = { Text(filter.label, fontSize = 12.sp) }
-            )
+        FilterDropdown(
+            label = "Apps",
+            options = APP_TYPE_FILTERS,
+            selected = selectedFilter,
+            onSelect = onFilterSelected,
+            modifier = Modifier.weight(1f)
+        )
+        FilterDropdown(
+            label = "Risk",
+            options = RISK_FILTERS,
+            selected = selectedFilter,
+            onSelect = onFilterSelected,
+            modifier = Modifier.weight(1f)
+        )
+        FilterDropdown(
+            label = "Permission",
+            options = PERMISSION_FILTERS,
+            selected = selectedFilter,
+            onSelect = onFilterSelected,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun FilterDropdown(
+    label: String,
+    options: List<AppFilter>,
+    selected: AppFilter,
+    onSelect: (AppFilter) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val isActive = selected in options
+    val displayText = if (isActive) selected.label else label
+
+    Box(modifier) {
+        FilterChip(
+            selected = isActive,
+            onClick = { expanded = true },
+            label = { Text(displayText, fontSize = 11.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+            trailingIcon = {
+                Icon(
+                    if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                    null, modifier = Modifier.size(16.dp)
+                )
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            option.label,
+                            fontWeight = if (selected == option) FontWeight.Bold else FontWeight.Normal,
+                            color = if (selected == option) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    },
+                    onClick = {
+                        onSelect(option)
+                        expanded = false
+                    }
+                )
+            }
         }
     }
 }
