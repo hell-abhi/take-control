@@ -1,17 +1,13 @@
 package com.akeshari.takecontrol.ui.threats
 
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInParent
-import kotlinx.coroutines.delay
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -31,11 +27,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.akeshari.takecontrol.data.model.*
-import com.akeshari.takecontrol.ui.common.ExplainerCard
-import com.akeshari.takecontrol.ui.common.ExplainerSection
 import com.akeshari.takecontrol.ui.theme.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThreatsScreen(
     scrollToCompany: String? = null,
@@ -43,16 +36,13 @@ fun ThreatsScreen(
     viewModel: ThreatsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val scrollState = rememberScrollState()
-    var companyReachY by remember { mutableIntStateOf(0) }
-    var hasScrolled by remember { mutableStateOf(false) }
 
     if (state.isLoading) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(16.dp))
-                Text("Analyzing tracker ecosystem...", style = MaterialTheme.typography.bodyMedium)
+                Text("Analyzing trackers...", style = MaterialTheme.typography.bodyMedium)
             }
         }
         return
@@ -65,710 +55,197 @@ fun ThreatsScreen(
                 Spacer(Modifier.height(16.dp))
                 Text("No Trackers Detected", fontFamily = PressStart2P, fontSize = 12.sp, color = RiskSafe)
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    "None of your installed apps contain known tracking SDKs",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
+                Text("None of your installed apps contain known tracking SDKs", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
             }
         }
         return
     }
 
-    // Auto-scroll to Company Reach after layout settles
-    LaunchedEffect(scrollToCompany, state.isLoading) {
-            if (scrollToCompany != null && !state.isLoading && !hasScrolled) {
-                // Wait for Compose to lay out the full content
-                delay(500)
-                hasScrolled = true
-                if (companyReachY > 0) {
-                    scrollState.animateScrollTo(companyReachY)
-                } else {
-                    // Fallback: scroll to end where Company Reach lives
-                    scrollState.animateScrollTo(scrollState.maxValue)
-                }
-            }
-        }
-
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(horizontal = 20.dp)
-            .statusBarsPadding()
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).statusBarsPadding()
     ) {
         // Header
         Spacer(Modifier.height(12.dp))
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Outlined.Visibility, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
             Spacer(Modifier.width(10.dp))
-            Text("Tracker Radar", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
-            Text("${state.totalCompanies} companies", style = MaterialTheme.typography.labelMedium, color = RiskCritical, fontWeight = FontWeight.SemiBold)
+            Text("Tracker Radar", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 15.sp)
         }
         Spacer(Modifier.height(12.dp))
 
-            // Explainer card
-            ExplainerCard(
-                title = "What are trackers and SDKs?",
-                sections = listOf(
-                    ExplainerSection(
-                        "Hidden code inside apps.",
-                        "Trackers are software libraries (SDKs) that companies like Google, Meta, and ad networks embed inside apps. They run silently in the background."
-                    ),
-                    ExplainerSection(
-                        "They watch across apps.",
-                        "Even if you never use Facebook, their SDK inside other apps can monitor your activity, build a profile, and share it with advertisers — without your knowledge."
-                    ),
-                    ExplainerSection(
-                        "This screen shows the full picture.",
-                        "We scan your installed apps for 40+ known tracking SDKs and map which companies see your data, through which apps, and what permissions they can access."
-                    )
-                )
-            )
+        // 1. Summary card — compact, no expandable lists
+        SummaryCard(state)
+        Spacer(Modifier.height(16.dp))
 
-            Spacer(Modifier.height(16.dp))
+        // 2. Companies — the primary view
+        Text("Who's Tracking You", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(4.dp))
+        Text("Tap any company for details", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(10.dp))
 
-            // Top-level stats
-            TopStatsRow(state)
+        state.companyExposures.forEach { exposure ->
+            CompanyCard(exposure, onAppClick, initiallyExpanded = exposure.companyName == scrollToCompany)
+            Spacer(Modifier.height(8.dp))
+        }
 
-            // Threat heatmap — right below ecosystem overview
-            if (state.heatmapCells.isNotEmpty()) {
-                Spacer(Modifier.height(16.dp))
-                Text("Threat Heatmap", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "Companies vs permissions — darker = more apps giving access",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(12.dp))
-                ThreatHeatmap(state.heatmapCells, state.heatmapCompanies, state.heatmapGroups)
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            // Aggregate data exposure
-            Text("Your Data Exposure", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        // 3. Cross-app tracking
+        if (state.trackingBridges.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Text("Cross-App Tracking", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(4.dp))
-            Text(
-                "Who can access what — tap to see which companies",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(12.dp))
-            state.aggregateExposures.forEach { exposure ->
-                AggregateExposureRow(exposure)
+            Text("Same tracker in multiple apps = your activity is correlated", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(10.dp))
+
+            state.trackingBridges.take(6).forEach { bridge ->
+                BridgeCard(bridge)
                 Spacer(Modifier.height(6.dp))
             }
+        }
 
-            Spacer(Modifier.height(24.dp))
-
-            // Company exposure cards
-            Text(
-                "Company Reach",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.onGloballyPositioned { coords ->
-                    companyReachY = coords.positionInParent().y.toInt()
-                }
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "Each company's tracker footprint on your device",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(12.dp))
-            state.companyExposures.forEach { exposure ->
-                CompanyExposureCard(
-                    exposure = exposure,
-                    onAppClick = onAppClick,
-                    initiallyExpanded = exposure.companyName == scrollToCompany
-                )
-                Spacer(Modifier.height(10.dp))
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            // Cross-app tracking bridges
-            if (state.trackingBridges.isNotEmpty()) {
-                Text("Cross-App Tracking", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "Same tracker in multiple apps = your activity is correlated",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(12.dp))
-                state.trackingBridges.take(8).forEach { bridge ->
-                    TrackingBridgeCard(bridge)
-                    Spacer(Modifier.height(8.dp))
-                }
-            }
-
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(20.dp))
     }
 }
 
-// ── Top Stats ───────────────────────────────────────────────────────────────
+// ── Summary Card ────────────────────────────────────────────────────────────
 
 @Composable
-private fun TopStatsRow(state: ThreatsState) {
-    // Track which stat is expanded: 0=none, 1=companies, 2=trackers, 3=apps
-    var expandedStat by remember { mutableIntStateOf(0) }
-
+private fun SummaryCard(state: ThreatsState) {
     Card(
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = RiskCritical.copy(alpha = 0.08f))
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.Warning, null, tint = RiskCritical, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Ecosystem Overview", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.height(16.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                StatColumn(
-                    value = "${state.totalCompanies}",
-                    label = "Companies\nTracking You",
-                    color = RiskCritical,
-                    selected = expandedStat == 1,
-                    onClick = { expandedStat = if (expandedStat == 1) 0 else 1 }
-                )
-                StatColumn(
-                    value = "${state.totalTrackers}",
-                    label = "Unique\nTrackers",
-                    color = RiskHigh,
-                    selected = expandedStat == 2,
-                    onClick = { expandedStat = if (expandedStat == 2) 0 else 2 }
-                )
-                StatColumn(
-                    value = "${state.appsWithTrackers}",
-                    label = "Apps With\nTrackers",
-                    color = RiskMedium,
-                    selected = expandedStat == 3,
-                    onClick = { expandedStat = if (expandedStat == 3) 0 else 3 }
-                )
-            }
-
-            // Expanded detail lists
-            AnimatedVisibility(
-                visible = expandedStat != 0,
-                enter = expandVertically(),
-                exit = shrinkVertically()
-            ) {
-                Column(modifier = Modifier.padding(top = 12.dp)) {
-                    HorizontalDivider(color = RiskCritical.copy(alpha = 0.1f))
-                    Spacer(Modifier.height(8.dp))
-                    when (expandedStat) {
-                        1 -> {
-                            Text("Companies tracking you", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(Modifier.height(6.dp))
-                            state.companyExposures.forEach { company ->
-                                Row(
-                                    modifier = Modifier.padding(vertical = 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(RiskCritical))
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(company.companyName, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                                    Text(
-                                        "${company.appCount} apps",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                        2 -> {
-                            val allTrackers = state.companyExposures
-                                .flatMap { c -> c.trackerNames.map { it to c.companyName } }
-                                .distinctBy { it.first }
-                            Text("Unique trackers found", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(Modifier.height(6.dp))
-                            allTrackers.forEach { (tracker, company) ->
-                                Row(
-                                    modifier = Modifier.padding(vertical = 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(RiskHigh))
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(tracker, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                                    Text(
-                                        company,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                        3 -> {
-                            val appsWithTrackersList = state.companyExposures
-                                .flatMap { it.apps }
-                                .distinctBy { it.packageName }
-                                .sortedBy { it.appName }
-                            Text("Apps containing trackers", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(Modifier.height(6.dp))
-                            appsWithTrackersList.forEach { app ->
-                                Row(
-                                    modifier = Modifier.padding(vertical = 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(RiskMedium))
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(app.appName, style = MaterialTheme.typography.bodySmall)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (state.totalUserApps > 0) {
-                Spacer(Modifier.height(12.dp))
-                val pct = (state.appsWithTrackers.toFloat() / state.totalUserApps * 100).toInt()
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(RiskCritical.copy(alpha = 0.15f))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .fillMaxWidth(pct / 100f)
-                            .background(RiskCritical)
-                    )
-                }
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "$pct% of your apps contain trackers",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatColumn(value: String, label: String, color: Color, selected: Boolean = false, onClick: () -> Unit = {}) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (selected) color.copy(alpha = 0.12f) else Color.Transparent)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 6.dp)
-    ) {
-        Text(
-            value,
-            fontSize = 28.sp,
-            fontFamily = PressStart2P,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            lineHeight = 14.sp
-        )
-    }
-}
-
-// ── Aggregate Data Exposure ─────────────────────────────────────────────────
-
-@Composable
-private fun AggregateExposureRow(exposure: AggregateExposure) {
-    var expanded by remember { mutableStateOf(false) }
-    val riskColor = when (exposure.group.defaultRisk) {
-        RiskLevel.CRITICAL -> RiskCritical
-        RiskLevel.HIGH -> RiskHigh
-        RiskLevel.MEDIUM -> RiskMedium
-        RiskLevel.LOW -> RiskLow
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
-            .background(riskColor.copy(alpha = 0.06f))
-            .clickable { expanded = !expanded }
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(exposure.group.icon, null, tint = riskColor, modifier = Modifier.size(22.dp))
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    exposure.group.label.replace("Your ", ""),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    "${exposure.companyCount} companies via ${exposure.appCount} apps",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Icon(
-                if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                null,
-                tint = riskColor,
-                modifier = Modifier.size(18.dp)
-            )
-        }
-
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
-            Column(modifier = Modifier.padding(start = 46.dp, end = 12.dp, bottom = 10.dp)) {
-                exposure.companyNames.forEach { name ->
-                    Row(
-                        modifier = Modifier.padding(vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(riskColor))
-                        Spacer(Modifier.width(8.dp))
-                        Text(name, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            }
-        }
-    }
-}
-
-// ── Threat Heatmap ──────────────────────────────────────────────────────────
-
-@Composable
-private fun ThreatHeatmap(
-    cells: List<HeatmapCell>,
-    companies: List<String>,
-    groups: List<PermissionGroup>
-) {
-    val maxCount = cells.maxOfOrNull { it.appCount } ?: 1
-
-    Card(
-        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-            // Scrollable heatmap
-            Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                // Company labels column
-                Column {
-                    // Empty corner cell
-                    Box(Modifier.height(40.dp).width(80.dp))
-                    companies.forEach { company ->
-                        Box(
-                            modifier = Modifier.height(36.dp).width(80.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            Text(
-                                company,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
+        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+            // Stats row
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                SumStat("${state.totalCompanies}", "Companies", RiskCritical)
+                SumStat("${state.totalTrackers}", "Trackers", RiskHigh)
+                SumStat("${state.appsWithTrackers}", "Apps", RiskMedium)
+            }
 
-                // Data columns
-                groups.forEach { group ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        // Group header
-                        Box(
-                            modifier = Modifier.height(40.dp).width(44.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                group.icon,
-                                contentDescription = group.label,
-                                modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        // Cells
-                        companies.forEach { company ->
-                            val cell = cells.find { it.companyName == company && it.group == group }
-                            val count = cell?.appCount ?: 0
-                            val intensity = if (maxCount > 0) count.toFloat() / maxCount else 0f
-                            val cellColor = when {
-                                count == 0 -> Color.Transparent
-                                intensity > 0.66f -> RiskCritical
-                                intensity > 0.33f -> RiskHigh
-                                else -> RiskMedium
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .height(36.dp)
-                                    .width(44.dp)
-                                    .padding(2.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(
-                                        if (count > 0) cellColor.copy(alpha = 0.15f + intensity * 0.55f)
-                                        else MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (count > 0) {
-                                    Text(
-                                        "$count",
-                                        fontSize = 11.sp,
-                                        fontFamily = JetBrainsMono,
-                                        fontWeight = FontWeight.Bold,
-                                        color = cellColor
-                                    )
-                                }
-                            }
-                        }
-                    }
+            // Percentage bar
+            if (state.totalUserApps > 0) {
+                Spacer(Modifier.height(10.dp))
+                val pct = (state.appsWithTrackers.toFloat() / state.totalUserApps * 100).toInt()
+                Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(RiskCritical.copy(alpha = 0.12f))) {
+                    Box(Modifier.fillMaxHeight().fillMaxWidth(pct / 100f).background(RiskCritical))
                 }
+                Spacer(Modifier.height(4.dp))
+                Text("$pct% of your apps contain trackers", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
 }
 
-// ── Company Exposure Card ───────────────────────────────────────────────────
+@Composable
+private fun SumStat(value: String, label: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, fontFamily = JetBrainsMono, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = color)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+// ── Company Card ────────────────────────────────────────────────────────────
 
 @Composable
-private fun CompanyExposureCard(exposure: CompanyExposure, onAppClick: (String) -> Unit, initiallyExpanded: Boolean = false) {
-    val reachColor = when {
+private fun CompanyCard(exposure: CompanyExposure, onAppClick: (String) -> Unit, initiallyExpanded: Boolean = false) {
+    var expanded by remember { mutableStateOf(initiallyExpanded) }
+    val color = when {
         exposure.reachPercentage > 40 -> RiskCritical
         exposure.reachPercentage > 20 -> RiskHigh
         exposure.reachPercentage > 10 -> RiskMedium
         else -> RiskLow
     }
 
-    var expanded by remember { mutableStateOf(initiallyExpanded) }
-
     Card(
-        onClick = { expanded = !expanded },
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            // Header
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Company initial
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(reachColor.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        exposure.companyName.first().toString(),
-                        fontSize = 18.sp,
-                        fontFamily = PressStart2P,
-                        fontWeight = FontWeight.Bold,
-                        color = reachColor
-                    )
-                }
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        exposure.companyName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        "${exposure.appCount} apps  ·  ${exposure.reachPercentage.toInt()}% reach",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Icon(
-                    if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                    null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // Reach bar
-            Spacer(Modifier.height(10.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(reachColor.copy(alpha = 0.15f))
+        Column(Modifier.fillMaxWidth()) {
+            // Header — always visible
+            Row(
+                Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(exposure.reachPercentage / 100f)
-                        .background(reachColor)
-                )
+                Box(Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)).background(color.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
+                    Text(exposure.companyName.first().toString(), fontFamily = PressStart2P, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = color)
+                }
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(exposure.companyName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    Text("${exposure.appCount} apps · ${exposure.reachPercentage.toInt()}% of your apps", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
-            // Permission access summary (always visible)
-            if (exposure.permissionAccess.isNotEmpty()) {
-                Spacer(Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    exposure.permissionAccess.entries.take(5).forEach { (group, count) ->
-                        val riskColor = when (group.defaultRisk) {
-                            RiskLevel.CRITICAL -> RiskCritical
-                            RiskLevel.HIGH -> RiskHigh
-                            RiskLevel.MEDIUM -> RiskMedium
-                            RiskLevel.LOW -> RiskLow
-                        }
-                        Row(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(riskColor.copy(alpha = 0.1f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(group.icon, null, tint = riskColor, modifier = Modifier.size(12.dp))
-                            Spacer(Modifier.width(3.dp))
-                            Text("$count", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = riskColor)
+            // Expanded — trackers, permissions, apps
+            AnimatedVisibility(visible = expanded, enter = expandVertically(), exit = shrinkVertically()) {
+                Column(Modifier.padding(start = 14.dp, end = 14.dp, bottom = 14.dp)) {
+                    // Tracker SDKs
+                    Text("Tracker SDKs", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(4.dp))
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        exposure.trackerNames.forEach { name ->
+                            Box(Modifier.clip(RoundedCornerShape(4.dp)).background(color.copy(alpha = 0.08f)).padding(horizontal = 6.dp, vertical = 2.dp)) {
+                                Text(name, style = MaterialTheme.typography.labelSmall, color = color)
+                            }
                         }
                     }
-                }
-            }
 
-            // Expanded details
-            if (expanded) {
-                Spacer(Modifier.height(12.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.surface)
-                Spacer(Modifier.height(8.dp))
-
-                // Tracker SDKs
-                Text("Tracker SDKs", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    exposure.trackerNames.joinToString(", "),
-                    style = MaterialTheme.typography.bodySmall
-                )
-
-                Spacer(Modifier.height(10.dp))
-
-                // Permission details
-                Text("Data Access", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(4.dp))
-                exposure.permissionAccess.forEach { (group, count) ->
-                    val riskColor = when (group.defaultRisk) {
-                        RiskLevel.CRITICAL -> RiskCritical
-                        RiskLevel.HIGH -> RiskHigh
-                        RiskLevel.MEDIUM -> RiskMedium
-                        RiskLevel.LOW -> RiskLow
+                    // Permissions they can access
+                    if (exposure.permissionAccess.isNotEmpty()) {
+                        Spacer(Modifier.height(10.dp))
+                        Text("Can access via your apps", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(4.dp))
+                        exposure.permissionAccess.forEach { (group, count) ->
+                            val gc = when (group.defaultRisk) { RiskLevel.CRITICAL -> RiskCritical; RiskLevel.HIGH -> RiskHigh; RiskLevel.MEDIUM -> RiskMedium; else -> RiskLow }
+                            Row(Modifier.padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(group.icon, null, tint = gc, modifier = Modifier.size(14.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("${group.label.replace("Your ", "")} (${count} apps)", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
                     }
-                    Row(
-                        modifier = Modifier.padding(vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(group.icon, null, tint = riskColor, modifier = Modifier.size(14.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            "${group.label.replace("Your ", "")} via $count app${if (count != 1) "s" else ""}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
+
+                    // Apps
+                    Spacer(Modifier.height(10.dp))
+                    Text("Present in", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(4.dp))
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        exposure.apps.forEach { app ->
+                            Box(
+                                Modifier.clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.surface).clickable { onAppClick(app.packageName) }.padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(app.appName, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                            }
+                        }
                     }
-                }
-
-                Spacer(Modifier.height(10.dp))
-
-                // Apps list
-                Text("Present In", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(4.dp))
-                exposure.apps.forEach { app ->
-                    Text(
-                        app.appName,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(vertical = 1.dp)
-                    )
                 }
             }
         }
     }
 }
 
-// ── Cross-App Tracking Bridge ───────────────────────────────────────────────
+// ── Bridge Card ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun TrackingBridgeCard(bridge: TrackingBridge) {
+private fun BridgeCard(bridge: TrackingBridge) {
     Card(
-        shape = RoundedCornerShape(6.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Tracker info
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    bridge.trackerName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    bridge.companyName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(bridge.trackerName, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                Text("${bridge.companyName} · links ${bridge.apps.size} apps", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-
-            // App count badge
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(RiskHigh.copy(alpha = 0.15f))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    "${bridge.apps.size} apps",
-                    fontSize = 11.sp,
-                    fontFamily = JetBrainsMono,
-                    fontWeight = FontWeight.Bold,
-                    color = RiskHigh
-                )
-            }
-        }
-
-        // App names
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 12.dp, end = 12.dp, bottom = 10.dp)
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            bridge.apps.forEach { app ->
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                ) {
-                    Text(
-                        app.appName,
-                        style = MaterialTheme.typography.labelSmall,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                bridge.apps.take(4).forEach { app ->
+                    Box(Modifier.clip(RoundedCornerShape(4.dp)).background(RiskHigh.copy(alpha = 0.08f)).padding(horizontal = 6.dp, vertical = 2.dp)) {
+                        Text(app.appName.take(10), style = MaterialTheme.typography.labelSmall, color = RiskHigh, maxLines = 1)
+                    }
+                }
+                if (bridge.apps.size > 4) {
+                    Text("+${bridge.apps.size - 4}", style = MaterialTheme.typography.labelSmall, color = RiskHigh)
                 }
             }
         }
