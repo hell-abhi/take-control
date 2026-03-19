@@ -2,33 +2,33 @@ package com.akeshari.takecontrol.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primary - Deep teal (trust, security)
-val Primary = Color(0xFF00FFCC)
-val PrimaryVariant = Color(0xFFFF00FF)
-val OnPrimary = Color.White
+// Primary — warm amber/gold (trust, warmth, protection)
+val Primary = Color(0xFFF5A623)
+val PrimaryVariant = Color(0xFFE8853D)
+val OnPrimary = Color(0xFF1A1210)
 
-// Background
-val Background = Color(0xFF0A0A1A)
-val Surface = Color(0xFF12122A)
-val SurfaceVariant = Color(0xFF1A1A3E)
+// Background — neutral charcoal (no blue tint)
+val Background = Color(0xFF121212)
+val Surface = Color(0xFF1E1E1E)
+val SurfaceVariant = Color(0xFF2A2A2A)
 
-// Text
-val OnBackground = Color(0xFFE0FFE0)
-val OnSurface = Color(0xFFE0FFE0)
-val OnSurfaceVariant = Color(0xFF7080A0)
+// Text — warm off-white
+val OnBackground = Color(0xFFF0EDE8)
+val OnSurface = Color(0xFFF0EDE8)
+val OnSurfaceVariant = Color(0xFF8A8580)
 
-// Risk colors
-val RiskCritical = Color(0xFFFF0055)
-val RiskHigh = Color(0xFFFF6600)
-val RiskMedium = Color(0xFFFFDD00)
-val RiskLow = Color(0xFF00FF66)
-val RiskSafe = Color(0xFF00FFCC)
+// Risk colors — softer, warmer
+val RiskCritical = Color(0xFFE53935) // warm red
+val RiskHigh = Color(0xFFFB8C00)     // warm orange
+val RiskMedium = Color(0xFFFDD835)   // warm yellow
+val RiskLow = Color(0xFF66BB6A)      // soft green
+val RiskSafe = Color(0xFF43A047)     // warm green
 
 // Light theme
-val PrimaryLight = Color(0xFF009988)
-val BackgroundLight = Color(0xFFF0F5FF)
+val PrimaryLight = Color(0xFFE6950F)
+val BackgroundLight = Color(0xFFFAFAF7)
 val SurfaceLight = Color.White
-val SurfaceVariantLight = Color(0xFFE0E8F8)
-val OnBackgroundLight = Color(0xFF1A1D21)
-val OnSurfaceLight = Color(0xFF1A1D21)
-val OnSurfaceVariantLight = Color(0xFF506080)
+val SurfaceVariantLight = Color(0xFFF0EDE8)
+val OnBackgroundLight = Color(0xFF1A1A1A)
+val OnSurfaceLight = Color(0xFF1A1A1A)
+val OnSurfaceVariantLight = Color(0xFF6B6560)
