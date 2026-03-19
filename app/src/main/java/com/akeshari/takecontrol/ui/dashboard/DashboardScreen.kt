@@ -56,46 +56,49 @@ fun DashboardScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    if (state.isLoading) {
-        ScanningScreen()
-    } else {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .statusBarsPadding()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp)
+            .statusBarsPadding()
+    ) {
+        // Brand header — always visible
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Brand header
-            Spacer(Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Outlined.Lock, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-                Spacer(Modifier.width(10.dp))
-                Text("Take Control", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
-                IconButton(onClick = { viewModel.refresh() }, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Outlined.Refresh, "Refresh", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-                }
+            Icon(Icons.Outlined.Lock, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.width(10.dp))
+            Text("Take Control", fontFamily = PressStart2P, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
+            IconButton(onClick = { viewModel.refresh() }, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Outlined.Refresh, "Refresh", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
             }
-            Spacer(Modifier.height(10.dp))
+        }
+        Spacer(Modifier.height(10.dp))
 
-                // 1. Score
-                CompactScoreCard(state.privacyScore, state.summary, state.companyOverviews, onFixGroup)
+        // 1. Score — loading state or real data
+        if (state.isLoading) {
+            ScanningCard()
+        } else {
+            CompactScoreCard(state.privacyScore, state.summary, state.companyOverviews, onFixGroup)
+        }
 
-                Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(8.dp))
 
-                // 2. Trust badges
-                TrustBadges()
+        // 2. Trust badges — always visible
+        TrustBadges()
 
-                Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
 
-                // 3. Quick Actions
-                QuickActionsRow(onNavigate)
+        // 3. Quick Actions — always visible, usable during scan
+        QuickActionsRow(onNavigate)
 
-                Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
 
+        // Data-dependent sections — only show after scan
+        if (!state.isLoading) {
                 // 4. Overview (Permissions / Trackers)
                 UnifiedOverview(
                     permissionCounts = state.permissionGroupCounts,
@@ -129,13 +132,59 @@ fun DashboardScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+        } // end if (!state.isLoading)
 
-            Spacer(Modifier.height(16.dp))
-        }
+        Spacer(Modifier.height(16.dp))
     }
 }
 
-// ── Scanning Screen with Privacy Tips ────────────────────────────────────────
+// ── Scanning Card (inline, not full-screen) ─────────────────────────────────
+
+@Composable
+private fun ScanningCard() {
+    val tips = remember { PRIVACY_TIPS.shuffled() }
+    var currentIndex by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(4000)
+            currentIndex = (currentIndex + 1) % tips.size
+        }
+    }
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp), strokeWidth = 3.dp)
+            Spacer(Modifier.height(12.dp))
+            Text("Scanning your apps...", style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(12.dp))
+            // Privacy tip
+            Card(
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+            ) {
+                Column(Modifier.fillMaxWidth().padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.Lightbulb, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Did you know?", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    AnimatedContent(
+                        targetState = currentIndex,
+                        transitionSpec = { (fadeIn(animationSpec = tween(500)) + slideInVertically(animationSpec = tween(500)) { it / 2 }).togetherWith(fadeOut(animationSpec = tween(300))) },
+                        label = "tip"
+                    ) { index ->
+                        Text(tips[index], style = MaterialTheme.typography.bodySmall, lineHeight = 17.sp)
+                    }
+                }
+            }
+        }
+    }
+}
 
 private val PRIVACY_TIPS = listOf(
     "Your phone has more sensors than a spy satellite from the 1990s.",
