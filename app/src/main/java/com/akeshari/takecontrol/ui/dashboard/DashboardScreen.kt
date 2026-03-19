@@ -94,24 +94,24 @@ fun DashboardScreen(
                     Icon(Icons.Outlined.Refresh, "Refresh", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                 }
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(10.dp))
 
-                // 1. Compact Score Banner
+                // 1. Score
                 CompactScoreCard(state.privacyScore, state.summary, state.companyOverviews, onFixGroup)
 
                 Spacer(Modifier.height(8.dp))
 
-                // Trust badges — linked
+                // 2. Trust badges
                 TrustBadges()
 
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(16.dp))
 
-                // 2. Quick Actions
+                // 3. Quick Actions
                 QuickActionsRow(onNavigate)
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
 
-                // 3. Unified Overview (Permissions / Trackers tabs)
+                // 4. Overview (Permissions / Trackers)
                 UnifiedOverview(
                     permissionCounts = state.permissionGroupCounts,
                     companies = state.companyOverviews,
@@ -121,37 +121,31 @@ fun DashboardScreen(
                     onNavigateToRadar = onNavigateToRadar
                 )
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
 
-                // 4. Top 3 Risky Apps
+                // 5. Top 3 Risky Apps
                 SectionHeader("Highest Risk", null, onViewAllApps)
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
                 state.topRiskyApps.take(3).forEach { app ->
                     RiskyAppCard(app = app, onClick = { onAppClick(app.packageName) })
                     Spacer(Modifier.height(6.dp))
                 }
 
-                // 5. Recent Changes
-                Spacer(Modifier.height(14.dp))
-                SectionHeader("Recent Changes", null) {}
+                // 6. Recent Changes
+                Spacer(Modifier.height(10.dp))
+                Text("Recent Changes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(6.dp))
                 if (state.recentChanges.isNotEmpty()) {
                     RecentChangesSection(state.recentChanges, onAppClick)
                 } else {
-                    Card(
-                        shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Text(
-                            "Permission changes will appear here after your next scan",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.fillMaxWidth().padding(16.dp)
-                        )
-                    }
+                    Text(
+                        "Permission changes will appear here after your next scan",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(16.dp))
         }
     }
 }

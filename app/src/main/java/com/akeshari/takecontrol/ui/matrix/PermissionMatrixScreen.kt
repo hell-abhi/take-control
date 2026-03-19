@@ -607,7 +607,14 @@ private fun FilterDropdown(
     Box(modifier) {
         FilterChip(
             selected = isActive,
-            onClick = { expanded = true },
+            onClick = {
+                if (isActive) {
+                    // Tapping active filter resets to default
+                    onSelect(AppFilter.USER_ONLY)
+                } else {
+                    expanded = true
+                }
+            },
             label = { Text(displayText, fontSize = 11.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
             trailingIcon = {
                 Icon(
