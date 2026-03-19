@@ -46,16 +46,16 @@ private val CHECKLIST = listOf(
         id = "ad_id",
         title = "Turn off ad personalization",
         why = "Google assigns your device an advertising ID that lets companies track you across every app. Disabling it stops cross-app ad tracking.",
-        howToFix = "Google Settings → Ads → Delete advertising ID / Opt out of Ads Personalization",
+        howToFix = "Tap below → Delete advertising ID or opt out of Ads Personalization.",
         icon = Icons.Outlined.PersonOff,
-        settingsAction = "com.google.android.gms.ads.settings.AdsSettingsActivity",
+        settingsAction = "com.google.android.gms.settings.ADS_PRIVACY",
         category = "Tracking"
     ),
     ChecklistItem(
         id = "usage_diagnostics",
         title = "Disable usage & diagnostics sharing",
         why = "Your phone sends anonymous usage data to Google/Samsung. While \"anonymous,\" this data can still be correlated to identify you.",
-        howToFix = "Settings → Privacy → Usage & Diagnostics → Turn off",
+        howToFix = "Tap below → scroll to Usage & Diagnostics → turn it off.",
         icon = Icons.Outlined.Analytics,
         settingsAction = Settings.ACTION_PRIVACY_SETTINGS,
         category = "Tracking"
@@ -64,7 +64,7 @@ private val CHECKLIST = listOf(
         id = "personalize_app_data",
         title = "Disable \"Personalize using app data\"",
         why = "Samsung uses your app usage patterns to personalize ads and recommendations across Samsung services.",
-        howToFix = "Settings → Privacy → Customization Service → Turn off",
+        howToFix = "Tap below → look for Customization Service → turn it off.",
         icon = Icons.Outlined.PhoneAndroid,
         settingsAction = Settings.ACTION_PRIVACY_SETTINGS,
         category = "Tracking"
@@ -75,27 +75,27 @@ private val CHECKLIST = listOf(
         id = "wifi_scanning",
         title = "Disable Wi-Fi scanning (always available)",
         why = "Even with Wi-Fi off, your phone scans for networks in the background — revealing your location to Google and nearby trackers.",
-        howToFix = "Settings → Location → Wi-Fi scanning → Turn off",
+        howToFix = "Tap below → Wi-Fi scanning → turn it off.",
         icon = Icons.Outlined.Wifi,
-        settingsAction = Settings.ACTION_LOCATION_SOURCE_SETTINGS,
+        settingsAction = "android.settings.LOCATION_SCANNING_SETTINGS",
         category = "Location"
     ),
     ChecklistItem(
         id = "bt_scanning",
         title = "Disable Bluetooth scanning",
         why = "Similar to Wi-Fi scanning — your phone broadcasts Bluetooth signals that can be used for indoor location tracking, even with Bluetooth off.",
-        howToFix = "Settings → Location → Bluetooth scanning → Turn off",
+        howToFix = "Tap below → Bluetooth scanning → turn it off.",
         icon = Icons.Outlined.Bluetooth,
-        settingsAction = Settings.ACTION_LOCATION_SOURCE_SETTINGS,
+        settingsAction = "android.settings.LOCATION_SCANNING_SETTINGS",
         category = "Location"
     ),
     ChecklistItem(
         id = "google_location_history",
         title = "Turn off Google Location History",
         why = "Google records everywhere you go and stores it in your timeline — indefinitely. This data is used for ads and has been subpoenaed by law enforcement.",
-        howToFix = "Google Settings → Data & Privacy → Location History → Turn off",
+        howToFix = "Tap below → find Location History or Timeline → turn it off and delete existing data.",
         icon = Icons.Outlined.LocationOff,
-        settingsAction = "com.google.android.gms.location.settings.GOOGLE_LOCATION_SETTINGS",
+        settingsAction = Settings.ACTION_LOCATION_SOURCE_SETTINGS,
         category = "Location"
     ),
 
@@ -104,7 +104,7 @@ private val CHECKLIST = listOf(
         id = "private_dns",
         title = "Use a private DNS provider",
         why = "By default, every website you visit is visible to your ISP through DNS queries. Private DNS encrypts these lookups.",
-        howToFix = "Settings → Network → Private DNS → Set to dns.adguard.com or one.one.one.one",
+        howToFix = "Tap below → More connection settings → Private DNS → set to dns.adguard.com or one.one.one.one",
         icon = Icons.Outlined.Dns,
         settingsAction = Settings.ACTION_WIRELESS_SETTINGS,
         category = "Network"
@@ -115,16 +115,16 @@ private val CHECKLIST = listOf(
         id = "screen_lock",
         title = "Enable screen lock with biometrics",
         why = "A phone without a lock screen is an open book. Biometric lock (fingerprint/face) makes it fast and secure.",
-        howToFix = "Settings → Lock Screen → Screen lock type → Set PIN/Password + Fingerprint",
+        howToFix = "Tap below → set up fingerprint or face unlock if you haven't already.",
         icon = Icons.Outlined.Fingerprint,
-        settingsAction = Settings.ACTION_SECURITY_SETTINGS,
+        settingsAction = "android.settings.BIOMETRIC_ENROLL",
         category = "Security"
     ),
     ChecklistItem(
         id = "install_unknown",
         title = "Disable \"Install unknown apps\" for all sources",
         why = "If any app can sideload other apps, malware can install itself. Only enable this temporarily when you need it.",
-        howToFix = "Settings → Apps → Special access → Install unknown apps → Disable for all",
+        howToFix = "Tap below → make sure all apps are set to \"Not allowed\".",
         icon = Icons.Outlined.Block,
         settingsAction = Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
         category = "Security"
@@ -133,7 +133,7 @@ private val CHECKLIST = listOf(
         id = "find_my_device",
         title = "Review Find My Device settings",
         why = "Find My Device shares your real-time location with Google. Useful if you lose your phone, but a constant location beacon. Make a conscious choice.",
-        howToFix = "Settings → Security → Find My Device → Review",
+        howToFix = "Tap below → review whether Find My Device should be enabled or disabled for your use case.",
         icon = Icons.Outlined.LocationSearching,
         settingsAction = Settings.ACTION_SECURITY_SETTINGS,
         category = "Security"
@@ -144,16 +144,16 @@ private val CHECKLIST = listOf(
         id = "auto_update",
         title = "Enable automatic app updates",
         why = "App updates often fix security vulnerabilities. Running outdated apps with known exploits is a risk.",
-        howToFix = "Play Store → Profile → Settings → Auto-update apps → Over Wi-Fi only",
+        howToFix = "Tap below → opens Play Store → Profile icon → Settings → Auto-update apps → Over Wi-Fi only.",
         icon = Icons.Outlined.SystemUpdate,
-        settingsAction = "android.settings.APPLICATION_SETTINGS",
+        settingsAction = "android.intent.action.VIEW",
         category = "Apps"
     ),
     ChecklistItem(
         id = "review_permissions",
         title = "Review app permissions regularly",
         why = "Apps gain permissions through updates. A photo editor that didn't need your mic last month might request it now.",
-        howToFix = "Use Take Control's Permission Matrix to review all granted permissions",
+        howToFix = "Go to the Apps tab in Take Control to see the full permission matrix.",
         icon = Icons.Outlined.Shield,
         settingsAction = Settings.ACTION_APPLICATION_SETTINGS,
         category = "Apps"
@@ -329,7 +329,12 @@ private fun ChecklistRow(
 
 private fun openSettings(context: Context, action: String) {
     try {
-        context.startActivity(Intent(action))
+        if (action == "android.intent.action.VIEW") {
+            // Play Store settings
+            context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=com.android.vending")))
+        } else {
+            context.startActivity(Intent(action))
+        }
     } catch (_: Exception) {
         try {
             context.startActivity(Intent(Settings.ACTION_SETTINGS))
