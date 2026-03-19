@@ -22,7 +22,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.akeshari.takecontrol.ui.alternatives.AlternativesScreen
-import com.akeshari.takecontrol.ui.dataflow.DataFlowScreen
 import com.akeshari.takecontrol.ui.appdetail.AppDetailScreen
 import com.akeshari.takecontrol.ui.dashboard.DashboardScreen
 import com.akeshari.takecontrol.ui.matrix.PermissionMatrixScreen
@@ -43,7 +42,6 @@ object Routes {
         return if (query != null) "pre_install?query=$query" else "pre_install"
     }
     const val ALTERNATIVES = "alternatives"
-    const val DATA_FLOW = "data_flow"
     const val THREATS = "threats?company={company}"
     const val THREATS_BASE = "threats"
 
@@ -208,10 +206,6 @@ fun TakeControlNavHost() {
             }
 
             // Secondary screens (accessible from Home's Tools section)
-            composable(Routes.DATA_FLOW) {
-                DataFlowScreen(onBack = { navController.popBackStack() })
-            }
-
             composable(Routes.ALTERNATIVES) {
                 AlternativesScreen(
                     onBack = { navController.popBackStack() },
