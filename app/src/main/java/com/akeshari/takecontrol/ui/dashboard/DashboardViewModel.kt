@@ -5,12 +5,19 @@ import androidx.lifecycle.viewModelScope
 import com.akeshari.takecontrol.data.database.entity.PermissionChangeEntity
 import com.akeshari.takecontrol.data.model.*
 import com.akeshari.takecontrol.data.repository.AppRepository
+import com.akeshari.takecontrol.ui.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+data class Recommendation(
+    val text: String,
+    val actionRoute: String? = null,
+    val packageName: String? = null
+)
 
 data class DashboardState(
     val isLoading: Boolean = true,
@@ -24,6 +31,7 @@ data class DashboardState(
     val permissionGroupCounts: Map<PermissionGroup, Int> = emptyMap(),
     val companyOverviews: List<CompanyOverview> = emptyList(),
     val recentChanges: List<PermissionChangeEntity> = emptyList(),
+    val recommendations: List<Recommendation> = emptyList(),
     val error: String? = null
 )
 
@@ -68,6 +76,7 @@ class DashboardViewModel @Inject constructor(
 
                 val summary = generateSummary(privacyScore, appsWithTrackers, userApps.size)
                 val recentChanges = repository.getRecentChanges(10)
+                val recommendations = generateRecommendations(userApps, privacyScore)
 
                 _state.value = DashboardState(
                     isLoading = false,
@@ -80,7 +89,8 @@ class DashboardViewModel @Inject constructor(
                     topRiskyApps = userApps.take(5),
                     permissionGroupCounts = groupCounts,
                     companyOverviews = companyOverviews,
-                    recentChanges = recentChanges
+                    recentChanges = recentChanges,
+                    recommendations = recommendations
                 )
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
@@ -89,6 +99,103 @@ class DashboardViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    private fun generateRecommendations(
+        apps: List<AppPermissionInfo>,
+        score: PrivacyScore
+    ): List<Recommendation> {
+        val recs = mutableListOf<Recommendation>()
+
+        // 1. Apps in OTHER/UTILITIES category with HIGH/CRITICAL risk permissions
+        val suspiciousCategories = setOf(AppCategory.OTHER, AppCategory.UTILITIES)
+        val highRiskGroups = setOf(
+            PermissionGroup.MICROPHONE, PermissionGroup.CAMERA, PermissionGroup.LOCATION,
+            PermissionGroup.SMS, PermissionGroup.CONTACTS, PermissionGroup.PHONE
+        )
+        for (app in apps) {
+            if (app.category in suspiciousCategories) {
+                val riskyGranted = app.permissions.filter {
+                    it.isGranted && it.group in highRiskGroups &&
+                        (it.riskLevel == RiskLevel.HIGH || it.riskLevel == RiskLevel.CRITICAL)
+                }
+                if (riskyGranted.isNotEmpty()) {
+                    val perm = riskyGranted.first()
+                    recs.add(
+                        Recommendation(
+                            text = "Revoke ${perm.group.label.replace("Your ", "")} from ${app.appName} — a ${app.category.label.lowercase()} app doesn't need it",
+                            actionRoute = Routes.appDetail(app.packageName),
+                            packageName = app.packageName
+                        )
+                    )
+                }
+            }
+            if (recs.size >= 6) break
+        }
+
+        // 2. Apps with alternatives that have trackers
+        for (app in apps) {
+            if (app.trackers.isNotEmpty()) {
+                val alternatives = PrivacyAlternativesData.getAlternativesForPackage(app.packageName)
+                if (alternatives.isNotEmpty()) {
+                    val alt = alternatives.first()
+                    recs.add(
+                        Recommendation(
+                            text = "${app.appName} has ${app.trackers.size} trackers. Consider switching to ${alt.alternative}",
+                            actionRoute = Routes.ALTERNATIVES,
+                            packageName = app.packageName
+                        )
+                    )
+                }
+            }
+            if (recs.size >= 8) break
+        }
+
+        // 3. Apps with many sensitive permissions for their category
+        for (app in apps) {
+            if (app.category in suspiciousCategories) {
+                val sensitiveCount = app.permissions.count {
+                    it.isGranted && it.group in highRiskGroups
+                }
+                if (sensitiveCount >= 3) {
+                    val alreadyHas = recs.any { it.packageName == app.packageName }
+                    if (!alreadyHas) {
+                        recs.add(
+                            Recommendation(
+                                text = "Review ${app.appName} — it has $sensitiveCount sensitive permissions for a ${app.category.label.lowercase()} app",
+                                actionRoute = Routes.appDetail(app.packageName),
+                                packageName = app.packageName
+                            )
+                        )
+                    }
+                }
+            }
+            if (recs.size >= 10) break
+        }
+
+        // 4. Low permission score
+        if (score.permissionScore < 50) {
+            recs.add(
+                Recommendation(
+                    text = "Your permission score is ${score.permissionScore}/100. Check the breakdown to see which permissions to revoke",
+                    actionRoute = Routes.permissionMatrix()
+                )
+            )
+        }
+
+        // 5. Low tracker score
+        if (score.trackerScore < 50) {
+            recs.add(
+                Recommendation(
+                    text = "Many of your apps contain tracking SDKs. Check the Radar for details",
+                    actionRoute = Routes.threats()
+                )
+            )
+        }
+
+        // Prioritize: alternatives suggestions first (high impact), then risky perms, then scores
+        // Already roughly in priority order, just take top 4
+        return recs.take(4)
     }
 
     private fun generateSummary(score: PrivacyScore, appsWithTrackers: Int, totalApps: Int): String {

@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import com.akeshari.takecontrol.data.database.entity.PermissionChangeEntity
@@ -55,6 +56,7 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Column(
         modifier = Modifier
@@ -82,7 +84,7 @@ fun DashboardScreen(
         if (state.isLoading) {
             ScanningCard()
         } else {
-            CompactScoreCard(state.privacyScore, state.summary, state.companyOverviews, onFixGroup)
+            CompactScoreCard(state.privacyScore, state.summary, state.companyOverviews, onFixGroup, onShare = { sharePrivacyScore(context, state.privacyScore) })
         }
 
         Spacer(Modifier.height(8.dp))
@@ -96,6 +98,16 @@ fun DashboardScreen(
         QuickActionsRow(onNavigate)
 
         Spacer(Modifier.height(16.dp))
+
+        // 3.5. Recommended Actions
+        if (!state.isLoading && state.recommendations.isNotEmpty()) {
+            RecommendationsSection(
+                recommendations = state.recommendations,
+                onNavigate = onNavigate,
+                onAppClick = onAppClick
+            )
+            Spacer(Modifier.height(16.dp))
+        }
 
         // 4. Overview
         if (!state.isLoading) {
@@ -358,7 +370,8 @@ private fun CompactScoreCard(
     privacyScore: PrivacyScore,
     summary: String,
     companyOverviews: List<CompanyOverview>,
-    onFixGroup: (String) -> Unit
+    onFixGroup: (String) -> Unit,
+    onShare: () -> Unit = {}
 ) {
     var expanded by remember { mutableStateOf(false) }
     var showTrackers by remember { mutableStateOf(false) }
@@ -379,7 +392,12 @@ private fun CompactScoreCard(
                 Text("${privacyScore.total}", fontSize = 44.sp, fontFamily = PressStart2P, fontWeight = FontWeight.Bold, color = scoreColor)
                 Spacer(Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Privacy Score", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Privacy Score", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                        IconButton(onClick = onShare, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Outlined.Share, "Share score", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                        }
+                    }
                     Spacer(Modifier.height(4.dp))
                     Box(modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(scoreColor.copy(alpha = 0.15f))) {
                         Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(privacyScore.total / 100f).background(scoreColor))
@@ -730,6 +748,83 @@ private fun RiskyAppCard(app: AppPermissionInfo, onClick: () -> Unit) {
             Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
         }
     }
+}
+
+// ── Recommended Actions ─────────────────────────────────────────────────────
+
+@Composable
+private fun RecommendationsSection(
+    recommendations: List<Recommendation>,
+    onNavigate: (String) -> Unit,
+    onAppClick: (String) -> Unit
+) {
+    Column {
+        Text("Recommended Actions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        recommendations.forEach { rec ->
+            Card(
+                onClick = {
+                    val route = rec.actionRoute
+                    if (route != null) {
+                        if (route.startsWith("app_detail/")) {
+                            onAppClick(route.removePrefix("app_detail/"))
+                        } else {
+                            onNavigate(route)
+                        }
+                    }
+                },
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Outlined.Lightbulb,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        rec.text,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Icon(
+                        Icons.AutoMirrored.Outlined.ArrowForward,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+        }
+    }
+}
+
+// ── Share Privacy Score ─────────────────────────────────────────────────────
+
+private fun sharePrivacyScore(context: Context, score: PrivacyScore) {
+    val emoji = when {
+        score.total >= 75 -> "\uD83D\uDFE2"
+        score.total >= 50 -> "\uD83D\uDFE1"
+        else -> "\uD83D\uDD34"
+    }
+    val text = "$emoji My privacy score is ${score.total}/100 " +
+        "(Permissions: ${score.permissionScore} | Trackers: ${score.trackerScore}). " +
+        "Check yours with Take Control! " +
+        "https://play.google.com/store/apps/details?id=com.akeshari.takecontrol"
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+    }
+    context.startActivity(Intent.createChooser(intent, "Share your privacy score"))
 }
 
 // ── Recent Changes ──────────────────────────────────────────────────────────
