@@ -3,6 +3,12 @@ package com.akeshari.takecontrol.ui.dashboard
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -51,28 +57,7 @@ fun DashboardScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     if (state.isLoading) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(32.dp)
-            ) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.height(20.dp))
-                Text("Scanning your apps...", style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.Lock, null, tint = RiskSafe, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("100% local — nothing leaves your device", style = MaterialTheme.typography.bodySmall, color = RiskSafe)
-                }
-                Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.Code, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Open source on GitHub", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
+        ScanningScreen()
     } else {
         Column(
             modifier = Modifier
@@ -146,6 +131,102 @@ fun DashboardScreen(
                 }
 
             Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+// ── Scanning Screen with Privacy Tips ────────────────────────────────────────
+
+private val PRIVACY_TIPS = listOf(
+    "Your phone has more sensors than a spy satellite from the 1990s.",
+    "The average app requests 5 permissions — many it doesn't actually need.",
+    "Location data can reveal where you live, work, and who you visit.",
+    "A flashlight app that asks for your contacts? That's a red flag.",
+    "Trackers in apps can follow you across different apps and websites.",
+    "Denying a permission doesn't break most apps — they just lose that one feature.",
+    "Free apps aren't free. You pay with your data.",
+    "Your keyboard app can see everything you type — including passwords.",
+    "Background location access means an app tracks you 24/7, even when closed.",
+    "Meta's SDK is embedded in millions of apps — even ones you'd never expect.",
+    "2FA codes sent via SMS can be intercepted. Use an authenticator app instead.",
+    "Apps can read your clipboard — including copied passwords and links.",
+    "A VPN hides your traffic from your ISP, but the VPN provider can see everything.",
+    "Your advertising ID lets companies track you across every app on your phone.",
+    "App permissions granted years ago may no longer be needed. Review them regularly.",
+    "Over 75% of Android apps contain at least one third-party tracking SDK.",
+    "Data brokers buy and sell your location data — often sourced from apps you use daily.",
+    "End-to-end encryption means only you and the recipient can read the message.",
+    "Open source apps let anyone verify there's no hidden tracking code.",
+    "Revoking microphone access from apps you don't voice-chat with is always a good idea."
+)
+
+@Composable
+private fun ScanningScreen() {
+    val tips = remember { PRIVACY_TIPS.shuffled() }
+    var currentIndex by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(4000)
+            currentIndex = (currentIndex + 1) % tips.size
+        }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.height(20.dp))
+        Text("Scanning your apps...", style = MaterialTheme.typography.bodyMedium)
+
+        Spacer(Modifier.height(28.dp))
+
+        // Privacy tip card
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(Modifier.fillMaxWidth().padding(18.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Lightbulb, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Did you know?", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                }
+                Spacer(Modifier.height(8.dp))
+                AnimatedContent(
+                    targetState = currentIndex,
+                    transitionSpec = {
+                        (fadeIn(animationSpec = tween(500)) + slideInVertically(animationSpec = tween(500)) { it / 2 })
+                            .togetherWith(fadeOut(animationSpec = tween(300)))
+                    },
+                    label = "tip"
+                ) { index ->
+                    Text(
+                        tips[index],
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        lineHeight = 20.sp
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+
+        // Trust badges
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.Lock, null, tint = RiskSafe, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("100% Local", style = MaterialTheme.typography.labelSmall, color = RiskSafe)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.Code, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Open Source", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
