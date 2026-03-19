@@ -1,10 +1,13 @@
 package com.akeshari.takecontrol.ui.appdetail
 
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -28,7 +31,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.akeshari.takecontrol.data.database.entity.PermissionChangeEntity
 import com.akeshari.takecontrol.data.model.*
 import com.akeshari.takecontrol.ui.theme.*
-import com.akeshari.takecontrol.data.model.PrivacyAlternative
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -43,573 +45,254 @@ fun AppDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    LaunchedEffect(packageName) {
-        viewModel.loadApp(packageName)
-    }
+    LaunchedEffect(packageName) { viewModel.loadApp(packageName) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(state.app?.appName ?: "App Details") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back")
-                    }
-                },
-                actions = {}
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") } }
             )
         }
     ) { padding ->
         val app = state.app
         if (app == null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             return@Scaffold
         }
 
+        val riskColor = when { app.riskScore >= 75 -> RiskCritical; app.riskScore >= 50 -> RiskHigh; app.riskScore >= 25 -> RiskMedium; else -> RiskLow }
+        val grantedCount = app.permissions.count { it.isGranted }
+
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Risk score header
+            // 1. Compact header — score left, details right
             item {
-                RiskScoreHeader(
-                    appName = app.appName,
-                    riskScore = app.riskScore,
-                    grantedCount = app.permissions.count { it.isGranted },
-                    totalCount = app.permissions.size,
-                    isSystemApp = app.isSystemApp,
-                    category = app.category
-                )
+                Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = riskColor.copy(alpha = 0.08f))) {
+                    Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        // Score
+                        Box(Modifier.size(60.dp).clip(RoundedCornerShape(12.dp)).background(riskColor.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
+                            Text("${app.riskScore}", fontSize = 28.sp, fontFamily = PressStart2P, fontWeight = FontWeight.Bold, color = riskColor)
+                        }
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) {
+                            val riskLabel = when { app.riskScore >= 75 -> "Critical Risk"; app.riskScore >= 50 -> "High Risk"; app.riskScore >= 25 -> "Medium Risk"; else -> "Low Risk" }
+                            Text(riskLabel, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = riskColor)
+                            Spacer(Modifier.height(4.dp))
+                            // Stats chips
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                StatChip("$grantedCount/${app.permissions.size}", "perms")
+                                if (app.trackers.isNotEmpty()) StatChip("${app.trackers.size}", "trackers", RiskHigh)
+                                if (app.category != AppCategory.OTHER) StatChip(app.category.label, color = MaterialTheme.colorScheme.primary)
+                            }
+                            if (app.isSystemApp) {
+                                Spacer(Modifier.height(4.dp))
+                                Text("System App", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
             }
 
-            // Privacy narratives (Feature 2)
+            // 2. Narratives — what this app could do
             if (state.narratives.isNotEmpty()) {
                 item {
-                    NarrativeCard(narratives = state.narratives)
+                    Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = RiskCritical.copy(alpha = 0.06f))) {
+                        Column(Modifier.fillMaxWidth().padding(14.dp)) {
+                            Text("What this app could do", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = RiskCritical)
+                            Spacer(Modifier.height(6.dp))
+                            state.narratives.forEach { n ->
+                                Row(Modifier.padding(vertical = 2.dp)) {
+                                    Text("\u2022", color = RiskCritical, modifier = Modifier.padding(end = 6.dp, top = 1.dp))
+                                    Text(n, style = MaterialTheme.typography.bodySmall, lineHeight = 18.sp)
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
-            // Trackers (Feature 4)
+            // 3. Trackers — collapsible
             if (app.trackers.isNotEmpty()) {
                 item {
-                    TrackerCard(trackers = app.trackers)
+                    val trackerColor = when { app.trackers.size > 5 -> RiskCritical; app.trackers.size > 2 -> RiskHigh; else -> RiskMedium }
+                    CollapsibleCard(
+                        title = "${app.trackers.size} Tracker${if (app.trackers.size != 1) "s" else ""} Detected",
+                        icon = Icons.Outlined.Visibility,
+                        color = trackerColor,
+                        defaultExpanded = false
+                    ) {
+                        app.trackers.forEach { tracker ->
+                            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(trackerColor))
+                                Spacer(Modifier.width(8.dp))
+                                Text(tracker.name, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                                Text(tracker.category.label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
                 }
             }
 
-            // Take Action
-            item {
-                ActionPanel(
-                    packageName = packageName,
-                    isSystemApp = app.isSystemApp
-                )
-            }
+            // 4. Permission groups — each collapsible
+            val grouped = app.permissions.filter { it.isGranted }.groupBy { it.group }.toSortedMap(compareByDescending { it.defaultRisk.weight })
 
-            // Alternative apps (Feature 1)
-            if (state.alternatives.isNotEmpty()) {
+            if (grouped.isNotEmpty()) {
                 item {
-                    AlternativesCard(alternatives = state.alternatives)
+                    Text("Granted Permissions", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                }
+                grouped.forEach { (group, perms) ->
+                    item {
+                        val gc = when (group.defaultRisk) { RiskLevel.CRITICAL -> RiskCritical; RiskLevel.HIGH -> RiskHigh; RiskLevel.MEDIUM -> RiskMedium; else -> RiskLow }
+                        CollapsibleCard(
+                            title = "${group.label} (${perms.size})",
+                            icon = group.icon,
+                            color = gc,
+                            defaultExpanded = false
+                        ) {
+                            perms.forEach { perm ->
+                                Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    val pc = when (perm.riskLevel) { RiskLevel.CRITICAL -> RiskCritical; RiskLevel.HIGH -> RiskHigh; RiskLevel.MEDIUM -> RiskMedium; else -> RiskLow }
+                                    Box(Modifier.size(8.dp).clip(RoundedCornerShape(2.dp)).background(pc))
+                                    Spacer(Modifier.width(8.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(perm.label, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                                    }
+                                    Text(perm.riskLevel.name, style = MaterialTheme.typography.labelSmall, color = pc)
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
-            // Permission timeline (Feature 3)
-            if (state.recentChanges.isNotEmpty()) {
-                item {
-                    TimelineCard(changes = state.recentChanges)
-                }
-            }
-
-            // Group permissions by category
-            val grouped = app.permissions
-                .filter { it.isGranted }
-                .groupBy { it.group }
-                .toSortedMap(compareByDescending { it.defaultRisk.weight })
-
-            grouped.forEach { (group, permissions) ->
-                item {
-                    Spacer(Modifier.height(8.dp))
-                    PermissionGroupHeader(group = group, count = permissions.size)
-                }
-                items(permissions) { permission ->
-                    PermissionItem(permission = permission)
-                }
-            }
-
-            // Denied permissions
+            // 5. Denied — collapsed summary
             val denied = app.permissions.filter { !it.isGranted }
             if (denied.isNotEmpty()) {
                 item {
-                    Spacer(Modifier.height(16.dp))
-                    Text(
-                        "Denied Permissions (${denied.size})",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                items(denied) { permission ->
-                    PermissionItem(permission = permission)
-                }
-            }
-        }
-    }
-}
-
-// ── Privacy Narrative Card (Feature 2) ──────────────────────────────────────
-
-@Composable
-private fun NarrativeCard(narratives: List<String>) {
-    Card(
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = RiskCritical.copy(alpha = 0.08f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Outlined.Warning,
-                    contentDescription = null,
-                    tint = RiskCritical,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    "What this app could do",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = RiskCritical
-                )
-            }
-            Spacer(Modifier.height(12.dp))
-            narratives.forEach { narrative ->
-                Row(modifier = Modifier.padding(vertical = 3.dp)) {
-                    Text(
-                        "\u2022",
-                        color = RiskCritical,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(end = 8.dp, top = 1.dp)
-                    )
-                    Text(
-                        narrative,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-private fun tryStartActivity(context: Context, vararg intents: Intent): Boolean {
-    for (intent in intents) {
-        try {
-            context.startActivity(intent)
-            return true
-        } catch (_: Exception) {
-            continue
-        }
-    }
-    return false
-}
-
-// ── Take Action Panel (Feature 1) ───────────────────────────────────────────
-
-@Composable
-private fun ActionPanel(packageName: String, isSystemApp: Boolean) {
-    val context = LocalContext.current
-
-    Button(
-        onClick = {
-            context.startActivity(
-                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.fromParts("package", packageName, null)
-                }
-            )
-        },
-        modifier = Modifier.fillMaxWidth().height(48.dp),
-        shape = RoundedCornerShape(8.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-    ) {
-        Icon(Icons.Outlined.Settings, null, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(8.dp))
-        Text("Open App Settings", fontWeight = FontWeight.SemiBold)
-    }
-}
-
-// ── Tracker Card (Feature 4) ────────────────────────────────────────────────
-
-@Composable
-private fun TrackerCard(trackers: List<TrackerInfo>) {
-    val trackerColor = when {
-        trackers.size <= 2 -> RiskMedium
-        trackers.size <= 5 -> RiskHigh
-        else -> RiskCritical
-    }
-
-    Card(
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = trackerColor.copy(alpha = 0.08f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Outlined.Visibility,
-                    contentDescription = null,
-                    tint = trackerColor,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    "${trackers.size} Tracker${if (trackers.size != 1) "s" else ""} Detected",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = trackerColor
-                )
-            }
-            Spacer(Modifier.height(12.dp))
-
-            trackers.forEach { tracker ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 3.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(trackerColor)
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        tracker.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        tracker.category.label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ── Alternative Apps (Feature 1) ────────────────────────────────────────────
-
-@Composable
-private fun AlternativesCard(alternatives: List<PrivacyAlternative>) {
-    Card(
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = RiskSafe.copy(alpha = 0.08f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Outlined.SwapHoriz,
-                    contentDescription = null,
-                    tint = RiskSafe,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    "Privacy-Friendly Alternatives",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = RiskSafe
-                )
-            }
-            Spacer(Modifier.height(12.dp))
-
-            alternatives.forEach { alt ->
-                Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                    Text(
-                        alt.alternative,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        alt.whyBetter,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ── Permission Timeline (Feature 3) ─────────────────────────────────────────
-
-@Composable
-private fun TimelineCard(changes: List<PermissionChangeEntity>) {
-    val dateFormat = remember { SimpleDateFormat("MMM d", Locale.getDefault()) }
-
-    Card(
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Outlined.History,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    "Permission Changes",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            Spacer(Modifier.height(12.dp))
-
-            changes.forEach { change ->
-                val isGranted = change.isNowGranted
-                val changeColor = if (isGranted) RiskHigh else RiskSafe
-                val verb = if (isGranted) "granted" else "revoked"
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(changeColor)
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "${change.permissionLabel} $verb",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = changeColor,
-                            fontWeight = FontWeight.Medium
-                        )
+                    CollapsibleCard(
+                        title = "Denied Permissions (${denied.size})",
+                        icon = Icons.Outlined.CheckCircle,
+                        color = RiskSafe,
+                        defaultExpanded = false
+                    ) {
+                        denied.forEach { perm ->
+                            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.size(8.dp).clip(RoundedCornerShape(2.dp)).background(RiskSafe))
+                                Spacer(Modifier.width(8.dp))
+                                Text(perm.label, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                            }
+                        }
                     }
-                    Text(
-                        dateFormat.format(Date(change.detectedAt)),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
             }
-        }
-    }
-}
 
-// ── Existing Components ─────────────────────────────────────────────────────
-
-@Composable
-private fun RiskScoreHeader(
-    appName: String,
-    riskScore: Int,
-    grantedCount: Int,
-    totalCount: Int,
-    isSystemApp: Boolean,
-    category: AppCategory
-) {
-    val riskColor = when {
-        riskScore >= 75 -> RiskCritical
-        riskScore >= 50 -> RiskHigh
-        riskScore >= 25 -> RiskMedium
-        else -> RiskLow
-    }
-    val riskLabel = when {
-        riskScore >= 75 -> "Critical Risk"
-        riskScore >= 50 -> "High Risk"
-        riskScore >= 25 -> "Medium Risk"
-        else -> "Low Risk"
-    }
-
-    Card(
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = riskColor.copy(alpha = 0.1f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(90.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(riskColor.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "$riskScore",
-                    fontSize = 44.sp,
-                    fontFamily = PressStart2P,
-                    fontWeight = FontWeight.Bold,
-                    color = riskColor
-                )
+            // 6. Alternatives
+            if (state.alternatives.isNotEmpty()) {
+                item {
+                    CollapsibleCard(
+                        title = "Privacy-Friendly Alternatives",
+                        icon = Icons.Outlined.SwapHoriz,
+                        color = RiskSafe,
+                        defaultExpanded = false
+                    ) {
+                        state.alternatives.forEach { alt ->
+                            Column(Modifier.padding(vertical = 4.dp)) {
+                                Text(alt.alternative, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = RiskSafe)
+                                Text(alt.whyBetter, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
             }
-            Spacer(Modifier.height(12.dp))
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(riskColor)
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    riskLabel,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+
+            // 7. Recent changes
+            if (state.recentChanges.isNotEmpty()) {
+                item {
+                    val dateFormat = remember { SimpleDateFormat("MMM d", Locale.getDefault()) }
+                    CollapsibleCard(
+                        title = "Permission Changes (${state.recentChanges.size})",
+                        icon = Icons.Outlined.History,
+                        color = MaterialTheme.colorScheme.primary,
+                        defaultExpanded = false
+                    ) {
+                        state.recentChanges.forEach { change ->
+                            val cc = if (change.isNowGranted) RiskHigh else RiskSafe
+                            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(cc))
+                                Spacer(Modifier.width(8.dp))
+                                Text("${change.permissionLabel} ${if (change.isNowGranted) "granted" else "revoked"}", style = MaterialTheme.typography.bodySmall, color = cc, modifier = Modifier.weight(1f))
+                                Text(dateFormat.format(Date(change.detectedAt)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
             }
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "$grantedCount of $totalCount permissions granted",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (category != AppCategory.OTHER) {
-                Spacer(Modifier.height(4.dp))
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
+
+            // 8. Action button
+            item {
+                Button(
+                    onClick = { context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply { data = Uri.fromParts("package", packageName, null) }) },
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text(
-                        category.label,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Icon(Icons.Outlined.Settings, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Open App Settings", fontWeight = FontWeight.SemiBold)
                 }
-            }
-            if (isSystemApp) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "System App — required by your device",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     }
 }
 
+// ── Reusable Components ─────────────────────────────────────────────────────
+
 @Composable
-private fun PermissionGroupHeader(group: PermissionGroup, count: Int) {
-    val riskColor = when (group.defaultRisk) {
-        RiskLevel.CRITICAL -> RiskCritical
-        RiskLevel.HIGH -> RiskHigh
-        RiskLevel.MEDIUM -> RiskMedium
-        RiskLevel.LOW -> RiskLow
-    }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(4.dp, 22.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(riskColor)
-        )
-        Spacer(Modifier.width(8.dp))
-        Icon(
-            group.icon,
-            contentDescription = null,
-            tint = riskColor,
-            modifier = Modifier.size(22.dp)
-        )
-        Spacer(Modifier.width(10.dp))
-        Text(
-            "${group.label} ($count)",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
+private fun StatChip(value: String, label: String = "", color: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+    Row(
+        modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(color.copy(alpha = 0.1f)).padding(horizontal = 6.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(value, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = color, fontFamily = JetBrainsMono)
+        if (label.isNotEmpty()) {
+            Spacer(Modifier.width(2.dp))
+            Text(label, fontSize = 9.sp, color = color)
+        }
     }
 }
 
 @Composable
-private fun PermissionItem(permission: PermissionDetail) {
-    val riskColor = when (permission.riskLevel) {
-        RiskLevel.CRITICAL -> RiskCritical
-        RiskLevel.HIGH -> RiskHigh
-        RiskLevel.MEDIUM -> RiskMedium
-        RiskLevel.LOW -> RiskLow
-    }
-
-    Card(
-        shape = RoundedCornerShape(6.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(if (permission.isGranted) riskColor else RiskLow)
-            )
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    permission.label,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    permission.permission.substringAfterLast("."),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+private fun CollapsibleCard(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    color: Color,
+    defaultExpanded: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    var expanded by remember { mutableStateOf(defaultExpanded) }
+    Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Column(Modifier.fillMaxWidth()) {
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { expanded = !expanded }.padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(icon, null, tint = color, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                Icon(
+                    if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                    null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)
                 )
             }
-            Text(
-                if (permission.isGranted) "Granted" else "Denied",
-                style = MaterialTheme.typography.labelSmall,
-                color = if (permission.isGranted) riskColor else RiskLow
-            )
+            AnimatedVisibility(visible = expanded, enter = expandVertically(), exit = shrinkVertically()) {
+                Column(Modifier.padding(start = 14.dp, end = 14.dp, bottom = 12.dp)) {
+                    content()
+                }
+            }
         }
     }
 }
