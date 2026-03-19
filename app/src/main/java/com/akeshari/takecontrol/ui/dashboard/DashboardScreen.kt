@@ -417,8 +417,7 @@ private fun UnifiedOverview(
                     )
                 }
             }
-            Spacer(Modifier.height(6.dp))
-            TextButton(onClick = onViewAllApps, modifier = Modifier.align(Alignment.End)) {
+            TextButton(onClick = onViewAllApps, modifier = Modifier.align(Alignment.End).height(30.dp), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
                 Text("View all in matrix", fontSize = 11.sp)
                 Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, modifier = Modifier.size(14.dp))
             }
@@ -440,8 +439,7 @@ private fun UnifiedOverview(
                         )
                     }
                 }
-                Spacer(Modifier.height(6.dp))
-                TextButton(onClick = { onNavigateToRadar(null) }, modifier = Modifier.align(Alignment.End)) {
+                TextButton(onClick = { onNavigateToRadar(null) }, modifier = Modifier.align(Alignment.End).height(30.dp), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
                     Text("$totalTrackers trackers — view radar", fontSize = 11.sp)
                     Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, modifier = Modifier.size(14.dp))
                 }
