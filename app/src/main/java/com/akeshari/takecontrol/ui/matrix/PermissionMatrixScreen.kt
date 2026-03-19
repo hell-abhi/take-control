@@ -496,59 +496,35 @@ private fun SheetAppRow(
 @Composable
 private fun LegendCard() {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                "What the colors mean",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(Modifier.height(12.dp))
-            LegendItem(color = Color.Gray.copy(alpha = 0.3f), label = "Not requested", description = "App doesn't use this permission")
-            Spacer(Modifier.height(6.dp))
-            LegendItem(color = RiskLow, label = "Denied", description = "Requested but you denied it")
-            Spacer(Modifier.height(6.dp))
-            LegendItem(color = RiskMedium, label = "Granted", description = "Permission is active")
-            Spacer(Modifier.height(6.dp))
-            LegendItem(color = RiskCritical, label = "Suspicious", description = "Granted & unusual for this type of app")
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text("What the dots mean", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(10.dp))
-            Text(
-                "Tap any column header to see details about that permission",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                LegendDot(color = Color.Gray.copy(alpha = 0.3f), label = "No access")
+                LegendDot(color = RiskLow, label = "Denied")
+                LegendDot(color = RiskMedium, label = "Granted")
+                LegendDot(color = RiskCritical, label = "Suspicious")
+            }
+            Spacer(Modifier.height(10.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.surface)
+            Spacer(Modifier.height(8.dp))
+            Text("Suspicious = granted but unusual for this type of app (e.g., a calculator with camera access)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 16.sp)
+            Spacer(Modifier.height(4.dp))
+            Text("Tap any column icon to see all apps with that permission", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
 @Composable
-private fun LegendItem(color: Color, label: String, description: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(12.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(color)
-        )
-        Spacer(Modifier.width(10.dp))
-        Text(
-            label,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.width(80.dp)
-        )
-        Text(
-            description,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+private fun LegendDot(color: Color, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.size(16.dp).clip(RoundedCornerShape(4.dp)).background(color))
+        Spacer(Modifier.height(4.dp))
+        Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -607,14 +583,7 @@ private fun FilterDropdown(
     Box(modifier) {
         FilterChip(
             selected = isActive,
-            onClick = {
-                if (isActive) {
-                    // Tapping active filter resets to default
-                    onSelect(AppFilter.USER_ONLY)
-                } else {
-                    expanded = true
-                }
-            },
+            onClick = { expanded = !expanded },
             label = { Text(displayText, fontSize = 11.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
             trailingIcon = {
                 Icon(
