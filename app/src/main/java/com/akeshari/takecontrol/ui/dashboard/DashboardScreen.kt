@@ -97,42 +97,73 @@ fun DashboardScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        // Data-dependent sections — only show after scan
+        // 4. Overview
         if (!state.isLoading) {
-                // 4. Overview (Permissions / Trackers)
-                UnifiedOverview(
-                    permissionCounts = state.permissionGroupCounts,
-                    companies = state.companyOverviews,
-                    totalTrackers = state.totalTrackers,
-                    onFixGroup = onFixGroup,
-                    onViewAllApps = onViewAllApps,
-                    onNavigateToRadar = onNavigateToRadar
+            UnifiedOverview(
+                permissionCounts = state.permissionGroupCounts,
+                companies = state.companyOverviews,
+                totalTrackers = state.totalTrackers,
+                onFixGroup = onFixGroup,
+                onViewAllApps = onViewAllApps,
+                onNavigateToRadar = onNavigateToRadar
+            )
+        } else {
+            // Skeleton overview
+            Text("Overview", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                repeat(3) {
+                    Card(shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), modifier = Modifier.weight(1f)) {
+                        Box(Modifier.fillMaxWidth().height(70.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // 5. Top Risky Apps
+        SectionHeader("Highest Risk", null, onViewAllApps)
+        Spacer(Modifier.height(6.dp))
+        if (!state.isLoading) {
+            state.topRiskyApps.take(3).forEach { app ->
+                RiskyAppCard(app = app, onClick = { onAppClick(app.packageName) })
+                Spacer(Modifier.height(6.dp))
+            }
+        } else {
+            repeat(3) {
+                Card(shape = RoundedCornerShape(6.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                    Box(Modifier.fillMaxWidth().height(52.dp).padding(14.dp), contentAlignment = Alignment.CenterStart) {
+                        Box(Modifier.fillMaxWidth(0.6f).height(10.dp).clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)))
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+            }
+        }
+
+        // 6. Recent Changes
+        Spacer(Modifier.height(10.dp))
+        Text("Recent Changes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(6.dp))
+        if (!state.isLoading) {
+            if (state.recentChanges.isNotEmpty()) {
+                RecentChangesSection(state.recentChanges, onAppClick)
+            } else {
+                Text(
+                    "Permission changes will appear here after your next scan",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
-                Spacer(Modifier.height(16.dp))
-
-                // 5. Top 3 Risky Apps
-                SectionHeader("Highest Risk", null, onViewAllApps)
-                Spacer(Modifier.height(6.dp))
-                state.topRiskyApps.take(3).forEach { app ->
-                    RiskyAppCard(app = app, onClick = { onAppClick(app.packageName) })
-                    Spacer(Modifier.height(6.dp))
-                }
-
-                // 6. Recent Changes
-                Spacer(Modifier.height(10.dp))
-                Text("Recent Changes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(6.dp))
-                if (state.recentChanges.isNotEmpty()) {
-                    RecentChangesSection(state.recentChanges, onAppClick)
-                } else {
-                    Text(
-                        "Permission changes will appear here after your next scan",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-        } // end if (!state.isLoading)
+            }
+        } else {
+            Text(
+                "Scanning...",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
 
         Spacer(Modifier.height(16.dp))
     }
