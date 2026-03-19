@@ -84,7 +84,7 @@ fun DashboardScreen(
         if (state.isLoading) {
             ScanningCard()
         } else {
-            CompactScoreCard(state.privacyScore, state.summary, state.companyOverviews, onFixGroup, onShare = { sharePrivacyScore(context, state.privacyScore) })
+            CompactScoreCard(state.privacyScore, state.summary, state.companyOverviews, state.recommendations, onFixGroup, onNavigate, onAppClick, onShare = { sharePrivacyScore(context, state.privacyScore, state.userAppCount, state.appsWithTrackers, state.totalTrackers) })
         }
 
         Spacer(Modifier.height(8.dp))
@@ -98,16 +98,6 @@ fun DashboardScreen(
         QuickActionsRow(onNavigate)
 
         Spacer(Modifier.height(16.dp))
-
-        // 3.5. Recommended Actions
-        if (!state.isLoading && state.recommendations.isNotEmpty()) {
-            RecommendationsSection(
-                recommendations = state.recommendations,
-                onNavigate = onNavigate,
-                onAppClick = onAppClick
-            )
-            Spacer(Modifier.height(16.dp))
-        }
 
         // 4. Overview
         if (!state.isLoading) {
@@ -370,11 +360,15 @@ private fun CompactScoreCard(
     privacyScore: PrivacyScore,
     summary: String,
     companyOverviews: List<CompanyOverview>,
+    recommendations: List<Recommendation>,
     onFixGroup: (String) -> Unit,
+    onNavigate: (String) -> Unit,
+    onAppClick: (String) -> Unit,
     onShare: () -> Unit = {}
 ) {
     var expanded by remember { mutableStateOf(false) }
     var showTrackers by remember { mutableStateOf(false) }
+    var showRecommendations by remember { mutableStateOf(false) }
     val scoreColor = when {
         privacyScore.total >= 75 -> RiskSafe
         privacyScore.total >= 50 -> RiskMedium
@@ -475,6 +469,40 @@ private fun CompactScoreCard(
                             }
                         } else {
                             Text("No trackers detected!", style = MaterialTheme.typography.bodySmall, color = RiskSafe)
+                        }
+                    }
+                }
+            }
+
+            // Recommended Actions toggle (inside score card)
+            if (recommendations.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { showRecommendations = !showRecommendations }.padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(if (showRecommendations) "Hide recommendations" else "Recommended actions (${recommendations.size})", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                    Icon(if (showRecommendations) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                }
+                AnimatedVisibility(visible = showRecommendations, enter = expandVertically(), exit = shrinkVertically()) {
+                    Column(modifier = Modifier.padding(top = 6.dp)) {
+                        recommendations.forEach { rec ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)).clickable {
+                                    val route = rec.actionRoute
+                                    if (route != null) {
+                                        if (route.startsWith("app_detail/")) onAppClick(route.removePrefix("app_detail/"))
+                                        else onNavigate(route)
+                                    }
+                                }.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Outlined.Lightbulb, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(rec.text, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f), lineHeight = 16.sp)
+                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(12.dp))
+                            }
+                            Spacer(Modifier.height(4.dp))
                         }
                     }
                 }
@@ -810,21 +838,64 @@ private fun RecommendationsSection(
 
 // ── Share Privacy Score ─────────────────────────────────────────────────────
 
-private fun sharePrivacyScore(context: Context, score: PrivacyScore) {
-    val emoji = when {
-        score.total >= 75 -> "\uD83D\uDFE2"
-        score.total >= 50 -> "\uD83D\uDFE1"
-        else -> "\uD83D\uDD34"
+private fun sharePrivacyScore(context: Context, score: PrivacyScore, appCount: Int, appsWithTrackers: Int, totalTrackers: Int) {
+    // Generate a shareable image
+    val width = 800
+    val height = 500
+    val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(bitmap)
+
+    val bgPaint = android.graphics.Paint().apply { color = 0xFF1E1E1E.toInt() }
+    val primaryPaint = android.graphics.Paint().apply { color = 0xFFF5A623.toInt(); textSize = 80f; isFakeBoldText = true; isAntiAlias = true }
+    val titlePaint = android.graphics.Paint().apply { color = 0xFFF0EDE8.toInt(); textSize = 32f; isFakeBoldText = true; isAntiAlias = true }
+    val bodyPaint = android.graphics.Paint().apply { color = 0xFF8A8580.toInt(); textSize = 24f; isAntiAlias = true }
+    val statPaint = android.graphics.Paint().apply { color = 0xFFF0EDE8.toInt(); textSize = 28f; isFakeBoldText = true; isAntiAlias = true }
+    val accentPaint = android.graphics.Paint().apply { color = 0xFFF5A623.toInt(); textSize = 24f; isAntiAlias = true }
+
+    // Background
+    canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bgPaint)
+
+    // Score
+    canvas.drawText("${score.total}", 60f, 120f, primaryPaint)
+    canvas.drawText("Privacy Score", 60f, 165f, titlePaint)
+
+    // Sub-scores
+    canvas.drawText("Permissions: ${score.permissionScore}/100", 60f, 220f, bodyPaint)
+    canvas.drawText("Trackers: ${score.trackerScore}/100", 60f, 255f, bodyPaint)
+
+    // Divider
+    val divPaint = android.graphics.Paint().apply { color = 0xFF3A3A3A.toInt() }
+    canvas.drawRect(60f, 280f, (width - 60).toFloat(), 282f, divPaint)
+
+    // Stats
+    canvas.drawText("$appCount apps scanned", 60f, 325f, statPaint)
+    canvas.drawText("$appsWithTrackers contain trackers ($totalTrackers unique)", 60f, 365f, bodyPaint)
+
+    // Branding
+    canvas.drawText("Take Control — Your Privacy, Made Visible", 60f, 430f, accentPaint)
+    canvas.drawText("play.google.com/store/apps/details?id=com.akeshari.takecontrol", 60f, 465f, bodyPaint)
+
+    // Save to cache and share
+    try {
+        val file = java.io.File(context.cacheDir, "privacy_score.png")
+        file.outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+        val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "image/png"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_TEXT, "My privacy score is ${score.total}/100. Check yours with Take Control!\nhttps://play.google.com/store/apps/details?id=com.akeshari.takecontrol")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(intent, "Share your privacy score"))
+    } catch (_: Exception) {
+        // Fallback to text share
+        val text = "My privacy score is ${score.total}/100 (Permissions: ${score.permissionScore} | Trackers: ${score.trackerScore}). Check yours with Take Control!"
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, text)
+        }
+        context.startActivity(Intent.createChooser(intent, "Share your privacy score"))
     }
-    val text = "$emoji My privacy score is ${score.total}/100 " +
-        "(Permissions: ${score.permissionScore} | Trackers: ${score.trackerScore}). " +
-        "Check yours with Take Control! " +
-        "https://play.google.com/store/apps/details?id=com.akeshari.takecontrol"
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(Intent.EXTRA_TEXT, text)
-    }
-    context.startActivity(Intent.createChooser(intent, "Share your privacy score"))
 }
 
 // ── Recent Changes ──────────────────────────────────────────────────────────

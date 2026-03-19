@@ -110,10 +110,13 @@ class PermissionScanner @Inject constructor(
             pkg.contains("wallet") || pkg.contains("finance") || pkg.contains("gpay") ||
             pkg.contains("phonepe") || pkg.contains("paytm") -> AppCategory.FINANCE
 
-            // Shopping
+            // Shopping & Delivery
             pkg.contains("amazon") || pkg.contains("flipkart") || pkg.contains("myntra") ||
             pkg.contains("shopping") || pkg.contains("shop") || pkg.contains("swiggy") ||
-            pkg.contains("zomato") || pkg.contains("blinkit") -> AppCategory.SHOPPING
+            pkg.contains("zomato") || pkg.contains("blinkit") ||
+            pkg.contains("uber") || pkg.contains("ola") || pkg.contains("rapido") ||
+            pkg.contains("lyft") || pkg.contains("grab") || pkg.contains("dunzo") ||
+            pkg.contains("instamart") || pkg.contains("zepto") -> AppCategory.SHOPPING
 
             // Health
             pkg.contains("health") || pkg.contains("fitness") || pkg.contains("workout") ||
