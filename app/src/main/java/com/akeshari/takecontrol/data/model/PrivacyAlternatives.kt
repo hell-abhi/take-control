@@ -13,6 +13,13 @@ data class PrivacyAlternative(
 )
 
 object PrivacyAlternativesData {
+    /**
+     * Returns alternatives for a specific installed package by matching against mainstreamPackage.
+     */
+    fun getAlternativesForPackage(packageName: String): List<PrivacyAlternative> {
+        return ALL.filter { it.mainstreamPackage == packageName }
+    }
+
     val ALL = listOf(
         PrivacyAlternative(
             category = "Messaging",

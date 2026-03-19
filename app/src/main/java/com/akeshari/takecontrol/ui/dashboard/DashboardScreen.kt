@@ -132,11 +132,23 @@ fun DashboardScreen(
                 }
 
                 // 5. Recent Changes
+                Spacer(Modifier.height(14.dp))
+                SectionHeader("Recent Changes", null) {}
+                Spacer(Modifier.height(6.dp))
                 if (state.recentChanges.isNotEmpty()) {
-                    Spacer(Modifier.height(14.dp))
-                    SectionHeader("Recent Changes", null) {}
-                    Spacer(Modifier.height(6.dp))
                     RecentChangesSection(state.recentChanges, onAppClick)
+                } else {
+                    Card(
+                        shape = RoundedCornerShape(8.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Text(
+                            "Permission changes will appear here after your next scan",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth().padding(16.dp)
+                        )
+                    }
                 }
 
             Spacer(Modifier.height(20.dp))
@@ -329,16 +341,10 @@ private fun SubScoreInline(label: String, score: Int) {
 
 @Composable
 private fun QuickActionsRow(onNavigate: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            QuickAction(Icons.Outlined.Timeline, "Activity", Modifier.weight(1f)) { onNavigate(Routes.ACTIVITY_MONITOR) }
-            QuickAction(Icons.Outlined.SwapHoriz, "Privacy Picks", Modifier.weight(1f)) { onNavigate(Routes.ALTERNATIVES) }
-            QuickAction(Icons.Outlined.Storage, "Community DB", Modifier.weight(1f)) { onNavigate(Routes.COMMUNITY_DB) }
-        }
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            QuickAction(Icons.Outlined.Search, "App Lookup", Modifier.weight(1f)) { onNavigate(Routes.preInstall()) }
-            QuickAction(Icons.Outlined.Info, "About", Modifier.weight(1f)) { onNavigate(Routes.SETTINGS) }
-        }
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        QuickAction(Icons.Outlined.SwapHoriz, "Privacy Picks", Modifier.weight(1f)) { onNavigate(Routes.ALTERNATIVES) }
+        QuickAction(Icons.Outlined.Search, "App Lookup", Modifier.weight(1f)) { onNavigate(Routes.preInstall()) }
+        QuickAction(Icons.Outlined.Info, "About", Modifier.weight(1f)) { onNavigate(Routes.SETTINGS) }
     }
 }
 

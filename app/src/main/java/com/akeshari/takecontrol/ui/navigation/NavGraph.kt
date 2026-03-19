@@ -21,8 +21,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.akeshari.takecontrol.ui.activity.ActivityScreen
-import com.akeshari.takecontrol.ui.communitydb.CommunityDbScreen
 import com.akeshari.takecontrol.ui.alternatives.AlternativesScreen
 import com.akeshari.takecontrol.ui.appdetail.AppDetailScreen
 import com.akeshari.takecontrol.ui.dashboard.DashboardScreen
@@ -43,9 +41,7 @@ object Routes {
     fun preInstall(query: String? = null): String {
         return if (query != null) "pre_install?query=$query" else "pre_install"
     }
-    const val ACTIVITY_MONITOR = "activity_monitor"
     const val ALTERNATIVES = "alternatives"
-    const val COMMUNITY_DB = "community_db"
     const val THREATS = "threats?company={company}"
     const val THREATS_BASE = "threats"
 
@@ -210,24 +206,6 @@ fun TakeControlNavHost() {
             }
 
             // Secondary screens (accessible from Home's Tools section)
-            composable(Routes.ACTIVITY_MONITOR) {
-                ActivityScreen(
-                    onBack = { navController.popBackStack() },
-                    onAppClick = { packageName ->
-                        navController.navigate(Routes.appDetail(packageName))
-                    }
-                )
-            }
-
-            composable(Routes.COMMUNITY_DB) {
-                CommunityDbScreen(
-                    onBack = { navController.popBackStack() },
-                    onLookup = { packageName ->
-                        navController.navigate(Routes.preInstall(packageName))
-                    }
-                )
-            }
-
             composable(Routes.ALTERNATIVES) {
                 AlternativesScreen(
                     onBack = { navController.popBackStack() },

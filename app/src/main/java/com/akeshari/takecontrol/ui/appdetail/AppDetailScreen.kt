@@ -28,7 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.akeshari.takecontrol.data.database.entity.PermissionChangeEntity
 import com.akeshari.takecontrol.data.model.*
 import com.akeshari.takecontrol.ui.theme.*
-import com.akeshari.takecontrol.util.AppAlternatives
+import com.akeshari.takecontrol.data.model.PrivacyAlternative
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -319,7 +319,7 @@ private fun TrackerCard(trackers: List<TrackerInfo>) {
 // ── Alternative Apps (Feature 1) ────────────────────────────────────────────
 
 @Composable
-private fun AlternativesCard(alternatives: List<AppAlternatives.Alternative>) {
+private fun AlternativesCard(alternatives: List<PrivacyAlternative>) {
     Card(
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
@@ -351,12 +351,12 @@ private fun AlternativesCard(alternatives: List<AppAlternatives.Alternative>) {
             alternatives.forEach { alt ->
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                     Text(
-                        alt.name,
+                        alt.alternative,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        alt.reason,
+                        alt.whyBetter,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

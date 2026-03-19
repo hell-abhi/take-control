@@ -5,7 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.akeshari.takecontrol.data.database.entity.PermissionChangeEntity
 import com.akeshari.takecontrol.data.model.AppPermissionInfo
 import com.akeshari.takecontrol.data.repository.AppRepository
-import com.akeshari.takecontrol.util.AppAlternatives
+import com.akeshari.takecontrol.data.model.PrivacyAlternative
+import com.akeshari.takecontrol.data.model.PrivacyAlternativesData
 import com.akeshari.takecontrol.util.PrivacyNarrativeGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +19,7 @@ data class AppDetailState(
     val app: AppPermissionInfo? = null,
     val isLoading: Boolean = true,
     val narratives: List<String> = emptyList(),
-    val alternatives: List<AppAlternatives.Alternative> = emptyList(),
+    val alternatives: List<PrivacyAlternative> = emptyList(),
     val recentChanges: List<PermissionChangeEntity> = emptyList()
 )
 
@@ -35,7 +36,7 @@ class AppDetailViewModel @Inject constructor(
             _state.value = AppDetailState(isLoading = true)
             val app = repository.getAppByPackage(packageName)
             val narratives = if (app != null) PrivacyNarrativeGenerator.generate(app.permissions) else emptyList()
-            val alternatives = AppAlternatives.getAlternatives(packageName)
+            val alternatives = PrivacyAlternativesData.getAlternativesForPackage(packageName)
             val changes = repository.getChangesForApp(packageName)
             _state.value = AppDetailState(
                 app = app,

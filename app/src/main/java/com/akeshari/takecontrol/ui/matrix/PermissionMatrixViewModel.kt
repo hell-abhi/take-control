@@ -24,7 +24,8 @@ enum class AppFilter(val label: String, val group: PermissionGroup?) {
     HAS_SMS("SMS Access", PermissionGroup.SMS),
     HAS_PHONE("Phone", PermissionGroup.PHONE),
     HAS_STORAGE("Storage", PermissionGroup.STORAGE),
-    HAS_SENSORS("Sensors", PermissionGroup.SENSORS);
+    HAS_SENSORS("Sensors", PermissionGroup.SENSORS),
+    HIGH_TRACKERS("Has Trackers", null);
 
     companion object {
         fun forGroup(groupName: String): AppFilter? {
@@ -105,6 +106,7 @@ class PermissionMatrixViewModel @Inject constructor(
             AppFilter.SYSTEM_ONLY -> filtered.filter { it.isSystemApp }
             AppFilter.ALL -> filtered
             AppFilter.HIGH_RISK -> filtered.filter { !it.isSystemApp && it.riskScore >= 50 }
+            AppFilter.HIGH_TRACKERS -> filtered.filter { !it.isSystemApp && it.trackers.isNotEmpty() }
             else -> {
                 val group = current.filter.group
                 if (group != null) {
