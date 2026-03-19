@@ -8,11 +8,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -89,6 +91,35 @@ fun PreInstallCheckScreen(
             // Error
             state.error?.let { error ->
                 item { ErrorCard(error) }
+            }
+
+            // Search results (name search)
+            state.searchResults?.let { results ->
+                if (results.isNotEmpty()) {
+                    item {
+                        Text("Tap an app to analyze", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    items(results) { result ->
+                        Card(
+                            onClick = {
+                                viewModel.updateQuery(result.packageName)
+                                viewModel.analyzePackage(result.packageName)
+                            },
+                            shape = RoundedCornerShape(6.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Row(
+                                Modifier.fillMaxWidth().padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Outlined.Apps, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(12.dp))
+                                Text(result.packageName, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
+                            }
+                        }
+                    }
+                }
             }
 
             // Results
@@ -207,7 +238,7 @@ private fun SearchSection(state: PreInstallState, viewModel: PreInstallCheckView
             value = state.query,
             onValueChange = { viewModel.updateQuery(it) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("com.instagram.android") },
+            placeholder = { Text("Search by name, package, or URL") },
             singleLine = true,
             shape = RoundedCornerShape(8.dp),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),

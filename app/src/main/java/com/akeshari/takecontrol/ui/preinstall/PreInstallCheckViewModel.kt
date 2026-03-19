@@ -28,10 +28,15 @@ data class PermissionRisk(
     val riskLevel: RiskLevel
 )
 
+data class SearchResult(
+    val packageName: String
+)
+
 data class PreInstallState(
     val isLoading: Boolean = false,
     val query: String = "",
     val error: String? = null,
+    val searchResults: List<SearchResult>? = null, // null = no search done, empty = no results
     // Shared fields
     val appName: String? = null,
     val packageName: String? = null,
@@ -64,22 +69,63 @@ class PreInstallCheckViewModel @Inject constructor(
         val input = _state.value.query.trim()
         if (input.isBlank()) return
 
-        val packageName = extractPackageName(input)
-        if (packageName.isBlank() || !packageName.contains(".")) {
-            _state.value = _state.value.copy(
-                error = "Enter a valid package name (e.g., com.instagram.android) or paste a Play Store link."
-            )
-            return
+        // If it's a URL or looks like a package name (has dots, no spaces), analyze directly
+        val isPackageOrUrl = input.contains("play.google.com") || input.startsWith("market://") ||
+                (input.contains(".") && !input.contains(" "))
+
+        if (isPackageOrUrl) {
+            val packageName = extractPackageName(input)
+            if (packageName.isBlank()) return
+            analyzePackage(packageName)
+        } else {
+            // Name search
+            searchByName(input)
         }
+    }
 
+    fun analyzePackage(packageName: String) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true, error = null, localApp = null, playStoreReport = null)
+            _state.value = _state.value.copy(isLoading = true, error = null, localApp = null, playStoreReport = null, searchResults = null)
 
-            // Priority: 1. Local (installed) → 2. Play Store scraping
             if (isInstalled(packageName)) {
                 analyzeLocal(packageName)
             } else {
                 analyzeFromPlayStore(packageName)
+            }
+        }
+    }
+
+    private fun searchByName(query: String) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isLoading = true, error = null, searchResults = null, localApp = null, playStoreReport = null)
+            try {
+                val results = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    val url = java.net.URL("https://play.google.com/store/search?q=${java.net.URLEncoder.encode(query, "UTF-8")}&c=apps&hl=en")
+                    val conn = url.openConnection() as java.net.HttpURLConnection
+                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 10)")
+                    conn.connectTimeout = 10_000
+                    conn.readTimeout = 10_000
+                    try {
+                        val html = conn.inputStream.bufferedReader().readText()
+                        val packages = Regex("""store/apps/details\?id=([^"&]+)""").findAll(html)
+                            .map { it.groupValues[1] }
+                            .distinct()
+                            .filter { it.contains(".") }
+                            .take(10)
+                            .map { SearchResult(it) }
+                            .toList()
+                        packages
+                    } finally {
+                        conn.disconnect()
+                    }
+                }
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    searchResults = results,
+                    error = if (results.isEmpty()) "No apps found for \"$query\"" else null
+                )
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(isLoading = false, error = "Search failed: ${e.message}")
             }
         }
     }
